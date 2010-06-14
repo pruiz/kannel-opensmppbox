@@ -1,0 +1,41 @@
+OVERVIEW
+========
+
+Smppbox is a special Kannel box that listens for smpp connections and accepts
+and sends sms messages from and to smpp clients.
+
+Smppbox behaves similar to other Kannel boxes and share a compatible
+configuration file format and command line options.
+
+After starting smppbox, a new connection to bearerbox is made for each
+smpp client that is connecting. This (new) connection with it's own
+'smsbox-id' is dedicated to sending and receiving messages for this particular
+smpp client.
+
+INSTALLATION
+============
+Please read the INSTALL file for further instructions. If in a hurry, the quick
+explanation is:
+
+./bootstrap
+./configure
+make
+
+And finally, as root:
+
+make install
+
+You need to have a compiled version of Kannel available in order to compile
+smppbox.
+
+The Userguide has also valuable information about the install and configuration
+steps.
+
+HELP
+====
+
+The best to ask for help is on Kannel's mailing lists.
+
+Please visit Kannel's site for more information:
+
+http://www.kannel.org/

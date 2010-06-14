@@ -1,0 +1,7 @@
+2010/07/07
+    First repository release of smppbox standalone.
+    Some configuration options have been changed from the downloaded version:
+
+    - bearerbox-port added which replaces the smsbox-port in group = core
+    - bearerbox-host existed already but was not taken into account. It is now.
+    - global-sender removed (was not used)

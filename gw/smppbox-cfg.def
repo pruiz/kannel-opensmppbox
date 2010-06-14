@@ -1,0 +1,18 @@
+/* ==================================================================
+ * Sqlbox-cfg.def - Definition of configuration groups and variables
+ *
+ * Rene Kluwen rene.kluwen@chimit.nl
+ *
+ */
+
+SINGLE_GROUP(smppbox,
+	OCTSTR(bearerbox-host)
+	OCTSTR(bearerbox-port)
+	OCTSTR(smppbox-id)
+	OCTSTR(smppbox-port)
+	OCTSTR(log-file)
+	OCTSTR(log-level)
+	OCTSTR(our-system-id)
+	OCTSTR(route-to-smsc)
+	OCTSTR(smpp-logins)
+)
