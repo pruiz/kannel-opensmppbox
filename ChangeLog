@@ -1,4 +1,8 @@
-2010/07/07
+2010/06/15
+    Added HAVE_SHUTDOWN_CONNECTION #define, so we can use gwlib.a without
+    patching.
+
+2010/06/07
     First repository release of smppbox standalone.
     Some configuration options have been changed from the downloaded version:
 
