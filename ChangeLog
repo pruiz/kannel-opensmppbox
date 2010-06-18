@@ -1,3 +1,8 @@
+2010/06/16
+    Added support for long messages being sent via de same SMSC (by re-assembling
+    the message and sending it to bearerbox as a whole.
+    Thanks to Tomasz Konopka for testing patiently.
+
 2010/06/15
     Added HAVE_SHUTDOWN_CONNECTION #define, so we can use gwlib.a without
     patching.

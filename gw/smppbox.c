@@ -97,6 +97,7 @@ static Octstr *smpp_logins;
 static Counter *boxid;
 static int restart = 0;
 static List *all_boxes;
+static Dict *list_dict;
 
 Octstr *smppbox_id;
 Octstr *our_system_id;
@@ -274,6 +275,39 @@ static Msg *read_from_box(Connection *conn, Boxc *boxconn)
     return msg;
 }
 
+Msg *catenate_msg(List *list, int total)
+{
+	int current = 1, partno = 1, thismsg, max = 0;
+	Msg *current_msg;
+	Msg *ret = msg_duplicate(gwlist_get(list, 0));
+
+	octstr_destroy(ret->sms.udhdata);
+	ret->sms.udhdata = NULL;
+	octstr_delete(ret->sms.msgdata, 0, octstr_len(ret->sms.msgdata));
+	while (max < total) {
+		current_msg = gwlist_get(list, current - 1);
+		if (current_msg) {
+			thismsg = octstr_get_char(current_msg->sms.udhdata, 5);
+			if (thismsg == partno) {
+				octstr_append(ret->sms.msgdata, current_msg->sms.msgdata);
+				max = 0;
+				if (++partno > total) {
+					return ret;
+				}
+			}
+		}
+		if (current >= total) {
+			current = 0;
+		}
+		current++;
+		max++;
+	}
+	/* fail */
+	debug("smppbox", 0, "re-assembling message failed.");
+	msg_destroy(ret);
+	return NULL;
+}
+
 static long convert_addr_from_pdu(Octstr *id, Octstr *addr, long ton, long npi)
 {
     long reason = SMPP_ESME_ROK;
@@ -414,13 +448,30 @@ static int read_pdu(Boxc *box, Connection *conn, long *len, SMPP_PDU **pdu)
     return 1;
 }
 
-static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
+Octstr *extract_first_msgid(Octstr *dlr_url)
 {
-    SMPP_PDU *pdu;
+	Octstr *ret;
+	List *parts = octstr_split(dlr_url, octstr_imm(";"));
+
+	if (gwlist_len(parts) > 0) {
+		ret = octstr_duplicate(gwlist_get(parts, 0));
+	}
+	else {
+		/* this should never occur */
+		ret = octstr_create("");
+	}
+	gwlist_destroy(parts, octstr_destroy_item);
+	return ret;
+}
+
+static List *msg_to_pdu(Boxc *box, Msg *msg)
+{
+    SMPP_PDU *pdu, *pdu2;
+    List *pdulist = gwlist_create(), *parts;
     int validity, dlrtype;
     Msg *dlr;
     char *text;
-    Octstr *msgid, *dlr_status, *dlvrd;
+    Octstr *msgid, *msgid2, *dlr_status, *dlvrd;
     
     pdu = smpp_pdu_create(deliver_sm,
     	    	    	  counter_increase(box->smpp_pdu_counter));
@@ -490,6 +541,7 @@ static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
     if (octstr_len(pdu->u.deliver_sm.destination_addr) > 20 ||
         octstr_len(pdu->u.deliver_sm.source_addr) > 20) {
         smpp_pdu_destroy(pdu);
+	gwlist_destroy(pdulist, NULL);
         return NULL;
     }
 
@@ -525,20 +577,17 @@ static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
         pdu->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class |
             ESM_CLASS_SUBMIT_RPI;
 
-    /*
-     * set data segments and length
-     */
-
-    pdu->u.deliver_sm.short_message = octstr_duplicate(msg->sms.msgdata);
-
     /* Is this a delivery report? */
     if (msg->sms.sms_type == report_mo) {
 	pdu->u.deliver_sm.esm_class |= (0x04 | 0x08);
 	dlrtype = msg->sms.dlr_mask;
-	dlr = dlr_find(box->boxc_id, msg->sms.dlr_url, msg->sms.receiver, dlrtype);
+	parts = octstr_split(msg->sms.dlr_url, octstr_imm(";"));
+	msgid = gwlist_extract_first(parts);
+	dlr = dlr_find(msg->sms.boxc_id, msgid, msg->sms.receiver, dlrtype);
 	if (dlr == NULL) {
 		/* we could not find a corresponding dlr; nothing to send */
 		smpp_pdu_destroy(pdu);
+		gwlist_destroy(pdulist, NULL);
 		return NULL;
 	}
 	dlvrd = octstr_imm("000");
@@ -566,7 +615,31 @@ static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
 	if (strstr(text, "text:") != NULL) {
 		text = strstr(text, "text:") + (5 * sizeof(char));
 	}
-	pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msg->sms.dlr_url, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+	if (gwlist_len(parts) > 0) {
+		while ((msgid2 = gwlist_extract_first(parts)) != NULL) {
+			debug("smppbox", 0, "DLR for multipart message: sending %s.", octstr_get_cstr(msgid2));
+			pdu2 = smpp_pdu_create(deliver_sm, counter_increase(box->smpp_pdu_counter));
+			pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class;
+			pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
+			pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.source_addr_npi;
+			pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
+			pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+			pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
+			pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
+			pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
+			pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
+			pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
+			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msgid2, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+			octstr_destroy(msgid2);
+			gwlist_append(pdulist, pdu2);
+		}
+		msg_destroy(dlr);
+		return pdulist;
+	}
+	else {
+		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+	}
+	octstr_destroy(msgid);
 	msg_destroy(dlr);
     }
     else {
@@ -575,6 +648,12 @@ static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
 		pdu->u.deliver_sm.registered_delivery = 1;
 	else if (DLR_IS_FAIL(msg->sms.dlr_mask) && !DLR_IS_SUCCESS(msg->sms.dlr_mask))
 		pdu->u.deliver_sm.registered_delivery = 2;
+    	/*
+     	* set data segments and length
+     	*/
+
+    	pdu->u.deliver_sm.short_message = octstr_duplicate(msg->sms.msgdata);
+
     }
 
 
@@ -642,7 +721,8 @@ static SMPP_PDU *msg_to_pdu(Boxc *box, Msg *msg)
         pdu->u.deliver_sm.more_messages_to_send = 1;
 */
 
-    return pdu;
+    gwlist_append(pdulist, pdu);
+    return pdulist;
 }
 
 /*
@@ -966,11 +1046,72 @@ error:
     return NULL;
 }
 
+Octstr *concat_msgids(Octstr *msgid, List *list)
+{
+	Octstr *ret = octstr_duplicate(msgid);
+	int i;
+	Msg *msg;
+
+	for (i = 0; i < gwlist_len(list); i++) {
+		msg = gwlist_get(list, i);
+		octstr_append(ret, octstr_imm(";"));
+		octstr_append(ret, msg->sms.dlr_url);
+	}
+	return ret;
+}
+
+void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **parts_list)
+{
+	int reference, total;
+	Octstr *key;
+
+	if (msg->sms.udhdata && octstr_len(msg->sms.udhdata) == 6 && octstr_get_char(msg->sms.udhdata, 1) == 0) {
+		/* We collect long messages as one and send them to bearerbox as a whole, so they can be sent
+		   from the same smsc. */
+		(*msg_to_send) = 0;
+		debug("smppbox", 0, "assemble multi-part message.");
+		reference = octstr_get_char(msg->sms.udhdata, 3);
+		total = octstr_get_char(msg->sms.udhdata, 4);
+		key = octstr_format("%S-%i", msg->sms.receiver, reference);
+		(*parts_list) = dict_get(list_dict, key);
+		if (NULL == (*parts_list)) {
+			(*parts_list) = gwlist_create();
+			dict_put(list_dict, key, (*parts_list));
+		}
+		debug("smppbox", 0, "received %d of %d.", gwlist_len((*parts_list)) + 1, total);
+		if ((gwlist_len((*parts_list)) + 1) == total) {
+			debug("smppbox", 0, "received all parts of multi-part message.");
+			gwlist_append((*parts_list), msg);
+			/* assemble message */
+			(*msg2) = catenate_msg((*parts_list), total);
+			dict_put(list_dict, key, NULL);
+			octstr_destroy(key);
+			if (NULL == (*msg2)) {
+				/* we could not assemble an appropiate message */
+				debug("smppbox", 0, "Invalid multi-part message.");
+				
+			}
+			else {
+				(*msg2)->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
+				(*msg2)->sms.boxc_id = octstr_duplicate(box->boxc_id);
+				debug("smppbox", 0, "multi-part message, length: %d.", octstr_len((*msg2)->sms.msgdata));
+				(*msg_to_send) = 1;
+			}
+		}
+		else {
+			gwlist_append((*parts_list), msg);
+			octstr_destroy(key);
+		}
+	}
+}
+
 static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	SMPP_PDU *resp = NULL;
-	Msg *msg;
+	Msg *msg, *msg2;
 	long reason;
-	Octstr *msgid;
+	Octstr *msgid = NULL;
+	int msg_to_send = 1;
+	List *parts_list = NULL;
 
 	dump_pdu("Got PDU:", box->boxc_id, pdu);
 	switch (pdu->type) {
@@ -1040,46 +1181,72 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		break;
 	case data_sm:
 		msg = data_sm_to_msg(box, pdu, &reason);
+		msg2 = msg;
 		if (msg == NULL) {
 			resp = smpp_pdu_create(generic_nack, pdu->u.submit_sm.sequence_number);
 			resp->u.generic_nack.command_status = SMPP_ESME_RUNKNOWNERR;
 		}
 		else {
+			check_multipart(box, msg, &msg_to_send, &msg2, &parts_list);
 			msg->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(data_sm_resp, pdu->u.data_sm.sequence_number);
 			msgid = generate_smppid(msg);
+			msg->sms.dlr_url = octstr_duplicate(msgid);
 			resp->u.data_sm_resp.message_id = msgid;
-			if (DLR_IS_ENABLED(msg->sms.dlr_mask)) {
-				msg->sms.dlr_url = octstr_duplicate(msgid);
-				dlr_add(box->boxc_id, msgid, msg);
+			if (msg_to_send) {
+				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					msgid = generate_smppid(msg2);
+					if (parts_list) {
+						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
+					}
+					dlr_add(box->boxc_id, msgid, msg2);
+					octstr_destroy(msgid);
+				}
+				send_msg(box->bearerbox_connection, box, msg2);
+				if (parts_list) {
+					/* destroy values */
+					gwlist_destroy(parts_list, msg_destroy_item);
+				}
 			}
-			send_msg(box->bearerbox_connection, box, msg);
 		}
 		break;
 	case submit_sm:
 		msg = pdu_to_msg(box, pdu, &reason);
+		msg2 = msg;
 		if (msg == NULL) {
 			resp = smpp_pdu_create(generic_nack, pdu->u.submit_sm.sequence_number);
 			resp->u.generic_nack.command_status = SMPP_ESME_RUNKNOWNERR;
 		}
 		else {
+			check_multipart(box, msg, &msg_to_send, &msg2, &parts_list);
 			msg->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(submit_sm_resp, pdu->u.submit_sm.sequence_number);
 			msgid = generate_smppid(msg);
+			msg->sms.dlr_url = octstr_duplicate(msgid);
 			resp->u.submit_sm_resp.message_id = msgid;
-			if (DLR_IS_ENABLED(msg->sms.dlr_mask)) {
-				msg->sms.dlr_url = octstr_duplicate(msgid);
-				dlr_add(box->boxc_id, msgid, msg);
+			if (msg_to_send) {
+				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					msgid = generate_smppid(msg2);
+					if (parts_list) {
+						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
+					}
+					dlr_add(box->boxc_id, msgid, msg2);
+					octstr_destroy(msgid);
+				}
+				send_msg(box->bearerbox_connection, box, msg2);
+				if (parts_list) {
+					/* destroy values */
+					gwlist_destroy(parts_list, msg_destroy_item);
+				}
 			}
-			send_msg(box->bearerbox_connection, box, msg);
 		}
 		break;
 	case deliver_sm_resp:
-		// thank you
+		/* thank you */
 		break;
 	case unbind_resp:
 		box->logged_in = 0;
@@ -1269,6 +1436,7 @@ static void bearerbox_to_smpp(void *arg)
     Msg *msg, *mack;
     Boxc *box = arg;
     SMPP_PDU *pdu;
+    List *pdulist;
     int dreport;
     Connection *receiver_connection;
 
@@ -1378,11 +1546,14 @@ static void bearerbox_to_smpp(void *arg)
 		mack->ack.time = msg->sms.time;
 		uuid_copy(mack->ack.id, msg->sms.id);
 
-		pdu = msg_to_pdu(box, msg);
-		if (pdu != NULL) {
+		pdulist = msg_to_pdu(box, msg);
+		if (pdulist != NULL) {
 			receiver_connection = find_receiver_connection(box);
-			send_pdu(receiver_connection, box->boxc_id, pdu);
-			smpp_pdu_destroy(pdu);
+			while ((pdu = gwlist_extract_first(pdulist)) != NULL) {
+				send_pdu(receiver_connection, box->boxc_id, pdu);
+				smpp_pdu_destroy(pdu);
+			}
+			gwlist_destroy(pdulist, NULL);
 		}
 		send_msg(box->bearerbox_connection, box, mack);
 	}
@@ -1695,6 +1866,7 @@ int main(int argc, char **argv)
 
 	gwlib_init();
 	all_boxes = gwlist_create();
+	list_dict = dict_create(1, NULL);
 
 	cf_index = get_and_set_debugs(argc, argv, check_args);
 	setup_signal_handlers();
