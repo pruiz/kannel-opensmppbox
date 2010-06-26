@@ -98,6 +98,8 @@ static Counter *boxid;
 static int restart = 0;
 static List *all_boxes;
 static Dict *list_dict;
+static Counter *catenated_sms_counter;
+static long sms_max_length = MAX_SMS_OCTETS;
 
 Octstr *smppbox_id;
 Octstr *our_system_id;
@@ -468,10 +470,16 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 {
     SMPP_PDU *pdu, *pdu2;
     List *pdulist = gwlist_create(), *parts;
-    int validity, dlrtype;
+    int validity, dlrtype, catenate;
     Msg *dlr;
     char *text;
     Octstr *msgid, *msgid2, *dlr_status, *dlvrd;
+    /* split variables */
+    List *list;
+    unsigned long msg_sequence, msg_count;
+    int max_msgs;
+    Octstr *header, *footer, *suffix, *split_chars;
+    Msg *msg2;
     
     pdu = smpp_pdu_create(deliver_sm,
     	    	    	  counter_increase(box->smpp_pdu_counter));
@@ -634,6 +642,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			gwlist_append(pdulist, pdu2);
 		}
 		msg_destroy(dlr);
+        	smpp_pdu_destroy(pdu);
 		return pdulist;
 	}
 	else {
@@ -721,7 +730,46 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
         pdu->u.deliver_sm.more_messages_to_send = 1;
 */
 
-    gwlist_append(pdulist, pdu);
+    header = NULL;
+    footer = NULL;
+    suffix = NULL;
+    split_chars = NULL;
+    catenate = 1;
+    max_msgs = 255;
+    if (catenate)
+    	msg_sequence = counter_increase(catenated_sms_counter) & 0xFF;
+    else
+    	msg_sequence = 0;
+
+    list = sms_split(msg, header, footer, suffix, split_chars, catenate,
+    	    	     msg_sequence, max_msgs, sms_max_length);
+    msg_count = gwlist_len(list);
+    
+    debug("SMPP", 0, "message length %ld, sending %ld messages",
+          octstr_len(msg->sms.msgdata), msg_count);
+
+    while((msg2 = gwlist_extract_first(list)) != NULL) {
+	pdu2 = smpp_pdu_create(deliver_sm, counter_increase(box->smpp_pdu_counter));
+	pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
+	pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.source_addr_npi;
+	pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
+	pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+	pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
+	pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
+	pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
+	pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
+	pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
+	if (msg_count > 0) {
+		pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class | ESM_CLASS_DELIVER_UDH_INDICATOR;
+		pdu2->u.deliver_sm.short_message = octstr_cat(msg2->sms.udhdata, msg2->sms.msgdata);
+	}
+	else {
+		pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
+	}
+	gwlist_append(pdulist, pdu2);
+	msg_destroy(msg2);
+    }
+    smpp_pdu_destroy(pdu);
     return pdulist;
 }
 
@@ -1138,7 +1186,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.bind_transmitter_resp.system_id = octstr_duplicate(our_system_id);
 		}
 		else {
-			resp = smpp_pdu_create(bind_transmitter, pdu->u.bind_transmitter.sequence_number);
+			resp = smpp_pdu_create(bind_transmitter_resp, pdu->u.bind_transmitter_resp.sequence_number);
 			resp->u.bind_transmitter.command_status = 0x0d; /* invalid login */
 		}
 		break;
@@ -1152,8 +1200,8 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.bind_receiver_resp.system_id = octstr_duplicate(our_system_id);
 		}
 		else {
-			resp = smpp_pdu_create(bind_receiver, pdu->u.bind_receiver.sequence_number);
-			resp->u.bind_receiver.command_status = 0x0d; /* invalid login */
+			resp = smpp_pdu_create(bind_receiver_resp, pdu->u.bind_receiver.sequence_number);
+			resp->u.bind_receiver_resp.command_status = 0x0d; /* invalid login */
 		}
 		break;
 	case bind_transceiver:
