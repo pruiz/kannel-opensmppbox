@@ -1845,6 +1845,7 @@ static void init_smppbox(Cfg *cfg)
 		octstr_destroy(logfile);
 	}
 
+	catenated_sms_counter = counter_create();
         boxid = counter_create();
 	gw_smpp_enter(cfg);
 
@@ -1944,6 +1945,8 @@ int main(int argc, char **argv)
 	/* shutdown dlr storage */
 	heartbeat_stop(ALL_HEARTBEATS);
 	dlr_shutdown();
+	counter_destroy(catenated_sms_counter);
+	counter_destroy(boxid);
 
 	if (restart_smppbox) {
 		gwthread_sleep(1.0);
