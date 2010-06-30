@@ -641,15 +641,15 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			octstr_destroy(msgid2);
 			gwlist_append(pdulist, pdu2);
 		}
-		msg_destroy(dlr);
         	smpp_pdu_destroy(pdu);
-		return pdulist;
 	}
 	else {
 		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+		gwlist_append(pdulist, pdu);
 	}
 	octstr_destroy(msgid);
 	msg_destroy(dlr);
+	return pdulist;
     }
     else {
 	/* ask for the delivery reports if needed */
