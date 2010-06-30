@@ -744,7 +744,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     list = sms_split(msg, header, footer, suffix, split_chars, catenate,
     	    	     msg_sequence, max_msgs, sms_max_length);
     msg_count = gwlist_len(list);
-    
+
     debug("SMPP", 0, "message length %ld, sending %ld messages",
           octstr_len(msg->sms.msgdata), msg_count);
 
@@ -760,8 +760,13 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
 	pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
 	if (msg_count > 0) {
-		pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class | ESM_CLASS_DELIVER_UDH_INDICATOR;
-		pdu2->u.deliver_sm.short_message = octstr_cat(msg2->sms.udhdata, msg2->sms.msgdata);
+		if (octstr_len(msg2->sms.udhdata) > 0) {
+		    pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class | ESM_CLASS_DELIVER_UDH_INDICATOR;
+		    pdu2->u.deliver_sm.short_message = octstr_cat(msg2->sms.udhdata, msg2->sms.msgdata);
+		}
+		else {
+		    pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
+		}
 	}
 	else {
 		pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
