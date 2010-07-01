@@ -450,22 +450,6 @@ static int read_pdu(Boxc *box, Connection *conn, long *len, SMPP_PDU **pdu)
     return 1;
 }
 
-Octstr *extract_first_msgid(Octstr *dlr_url)
-{
-	Octstr *ret;
-	List *parts = octstr_split(dlr_url, octstr_imm(";"));
-
-	if (gwlist_len(parts) > 0) {
-		ret = octstr_duplicate(gwlist_get(parts, 0));
-	}
-	else {
-		/* this should never occur */
-		ret = octstr_create("");
-	}
-	gwlist_destroy(parts, octstr_destroy_item);
-	return ret;
-}
-
 static List *msg_to_pdu(Boxc *box, Msg *msg)
 {
     SMPP_PDU *pdu, *pdu2;
@@ -596,6 +580,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		/* we could not find a corresponding dlr; nothing to send */
 		smpp_pdu_destroy(pdu);
 		gwlist_destroy(pdulist, NULL);
+		gwlist_destroy(parts, octstr_destroy_item);
 		return NULL;
 	}
 	dlvrd = octstr_imm("000");
@@ -649,6 +634,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	}
 	octstr_destroy(msgid);
 	msg_destroy(dlr);
+	gwlist_destroy(parts, octstr_destroy_item);
 	return pdulist;
     }
     else {
@@ -775,6 +761,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	msg_destroy(msg2);
     }
     smpp_pdu_destroy(pdu);
+    gwlist_destroy(parts, octstr_destroy_item);
     return pdulist;
 }
 
