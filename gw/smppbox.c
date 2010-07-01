@@ -761,7 +761,6 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	msg_destroy(msg2);
     }
     smpp_pdu_destroy(pdu);
-    gwlist_destroy(parts, octstr_destroy_item);
     return pdulist;
 }
 
