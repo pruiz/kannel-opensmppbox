@@ -575,7 +575,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	dlrtype = msg->sms.dlr_mask;
 	parts = octstr_split(msg->sms.dlr_url, octstr_imm(";"));
 	msgid = gwlist_extract_first(parts);
-	dlr = dlr_find(msg->sms.boxc_id, msgid, msg->sms.receiver, dlrtype);
+	dlr = dlr_find(box->boxc_id, msgid, msg->sms.receiver, dlrtype);
 	if (dlr == NULL) {
 		/* we could not find a corresponding dlr; nothing to send */
 		smpp_pdu_destroy(pdu);
