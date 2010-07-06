@@ -611,7 +611,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	/* the msgids are in dlr->dlr_url as reported by Victor Luchitz */
 	gwlist_destroy(parts, octstr_destroy_item);
 	parts = octstr_split(dlr->sms.dlr_url, octstr_imm(";"));
-	gwlist_extract_first(parts);
+	octstr_destroy(gwlist_extract_first(parts));
 	if (gwlist_len(parts) > 0) {
 		while ((msgid2 = gwlist_extract_first(parts)) != NULL) {
 			debug("smppbox", 0, "DLR for multipart message: sending %s.", octstr_get_cstr(msgid2));
