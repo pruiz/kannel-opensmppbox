@@ -466,7 +466,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     List *pdulist = gwlist_create(), *parts;
     int validity, dlrtype, catenate;
     Msg *dlr;
-    char *text;
+    char *text, *tmps, err[4] = { '0', '0', '0', '\0' };
     Octstr *msgid, *msgid2, *dlr_status, *dlvrd;
     /* split variables */
     List *list;
@@ -590,6 +590,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		/* we could not find a corresponding dlr; nothing to send */
 		smpp_pdu_destroy(pdu);
 		gwlist_destroy(pdulist, NULL);
+		octstr_destroy(msgid);
 		gwlist_destroy(parts, octstr_destroy_item);
 		return NULL;
 	}
@@ -614,10 +615,20 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		dlr_status = octstr_imm("UNDELIV");
 		break;
 	}
+
 	text = octstr_get_cstr(msg->sms.msgdata);
-	if (strstr(text, "text:") != NULL) {
-		text = strstr(text, "text:") + (5 * sizeof(char));
+
+	tmps = strstr(text, "err:");
+	if (tmps != NULL) {
+		snprintf(err, sizeof(err), "%03.3s", tmps + (4 * sizeof(char)));
+		tmps = strstr(tmps, " ");
+		text = tmps ? tmps + (1 * sizeof(char)) : "";
 	}
+	tmps = strstr(text, "text:");
+	if (tmps != NULL) {
+		text = tmps + (5 * sizeof(char));
+	}
+
 	/* the msgids are in dlr->dlr_url as reported by Victor Luchitz */
 	gwlist_destroy(parts, octstr_destroy_item);
 	parts = octstr_split(dlr->sms.dlr_url, octstr_imm(";"));
@@ -636,14 +647,14 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
 			pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
 			pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
-			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msgid2, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid2, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
 			octstr_destroy(msgid2);
 			gwlist_append(pdulist, pdu2);
 		}
         	smpp_pdu_destroy(pdu);
 	}
 	else {
-		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:000 text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, text);
+		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
 		gwlist_append(pdulist, pdu);
 	}
 	octstr_destroy(msgid);

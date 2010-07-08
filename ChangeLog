@@ -1,4 +1,7 @@
 2010/07/08
+    Patch by Victor Luchitz committed to support "err: " text in reports.
+
+2010/07/08
     Added support for per user-level ip-restrictions.
 
 2010/06/16
