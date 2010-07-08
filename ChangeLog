@@ -1,3 +1,6 @@
+2010/07/08
+    Added support for per user-level ip-restrictions.
+
 2010/06/16
     Added support for long messages being sent via de same SMSC (by re-assembling
     the message and sending it to bearerbox as a whole.

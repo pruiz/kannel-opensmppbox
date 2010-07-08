@@ -149,19 +149,29 @@ typedef struct _boxc {
 } Boxc;
 
 /* check if login exists in database */
-int check_login(Octstr *system_id, Octstr *password, Octstr *system_type, smpp_login login_type) {
+int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_type, smpp_login login_type) {
 	int box;
 	Boxc *thisbox;
 	FILE *fp;
-	char systemid[255], passw[255], systemtype[255];
+	char systemid[255], passw[255], systemtype[255], allowed_ips[1024];
+	Octstr *allowed_ips_str;
 
 	fp = fopen(octstr_get_cstr(smpp_logins), "r");
 	if (fp == NULL) {
 		return 0;
 	}
 	while (!feof(fp)) {
-		fscanf(fp, "%s %s %s\n", systemid, passw, systemtype);
+		fscanf(fp, "%s %s %s %s\n", systemid, passw, systemtype, allowed_ips);
 		if (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0 && strcmp(octstr_get_cstr(system_type), systemtype) == 0) {
+			if (strcmp(allowed_ips, "") != 0)  {
+				allowed_ips_str = octstr_create(allowed_ips);
+				if (is_allowed_ip(allowed_ips_str, octstr_imm("*.*.*.*"), boxc->client_ip) == 0) {
+					info(0, "Box connection tried from denied host <%s>, disconnected", octstr_get_cstr(boxc->client_ip));
+					octstr_destroy(allowed_ips_str);
+					continue;
+				}
+				octstr_destroy(allowed_ips_str);
+			}
 			fclose(fp);
 			goto valid_login;
 		}
@@ -1172,7 +1182,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	}
 	switch (pdu->type) {
 	case bind_transmitter:
-		if (check_login(pdu->u.bind_transmitter.system_id, pdu->u.bind_transmitter.password, pdu->u.bind_transmitter.system_type, SMPP_LOGIN_TRANSMITTER)) {
+		if (check_login(box, pdu->u.bind_transmitter.system_id, pdu->u.bind_transmitter.password, pdu->u.bind_transmitter.system_type, SMPP_LOGIN_TRANSMITTER)) {
 			box->logged_in = 1;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transmitter.system_type);
@@ -1186,7 +1196,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		}
 		break;
 	case bind_receiver:
-		if (check_login(pdu->u.bind_receiver.system_id, pdu->u.bind_receiver.password, pdu->u.bind_receiver.system_type, SMPP_LOGIN_RECEIVER)) {
+		if (check_login(box, pdu->u.bind_receiver.system_id, pdu->u.bind_receiver.password, pdu->u.bind_receiver.system_type, SMPP_LOGIN_RECEIVER)) {
 			box->logged_in = 1;
 			box->login_type = SMPP_LOGIN_RECEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_receiver.system_type);
@@ -1200,7 +1210,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		}
 		break;
 	case bind_transceiver:
-		if (check_login(pdu->u.bind_transceiver.system_id, pdu->u.bind_transceiver.password, pdu->u.bind_transceiver.system_type, SMPP_LOGIN_TRANSCEIVER)) {
+		if (check_login(box, pdu->u.bind_transceiver.system_id, pdu->u.bind_transceiver.password, pdu->u.bind_transceiver.system_type, SMPP_LOGIN_TRANSCEIVER)) {
 			box->logged_in = 1;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transceiver.system_type);
@@ -1420,7 +1430,7 @@ static Boxc *accept_smpp(int fd, int ssl)
         return NULL;
 #endif
 
-    info(0, "Client connected from <%s> %s", octstr_get_cstr(ip));
+    info(0, "Client connected from <%s>", octstr_get_cstr(ip));
     octstr_destroy(ip);
 
     /* XXX TODO: do the hand-shake, baby, yeah-yeah! */
