@@ -77,6 +77,7 @@
 #include "gw/sms.h"
 #include "gw/dlr.h"
 #include "gw/heartbeat.h"
+#include "gw/meta_data.h"
 
 /* our config */
 static Cfg *cfg;
@@ -782,6 +783,9 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	else {
 		pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
 	}
+	if (box->version > 0x33) {
+		pdu2->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
+	}
 	gwlist_append(pdulist, pdu2);
 	msg_destroy(msg2);
     }
@@ -957,6 +961,12 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
 	msg->sms.sms_type = report_mo;
     }
 
+    if (box->version > 0x33) {
+    	if (msg->sms.meta_data == NULL)
+        	msg->sms.meta_data = octstr_create("");
+    	meta_data_set_values(msg->sms.meta_data, pdu->u.submit_sm.tlv, "smpp", 1);
+    }
+
     return msg;
 
 error:
@@ -1103,6 +1113,12 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
             }
     }
 
+    if (box->version > 0x33) {
+    	if (msg->sms.meta_data == NULL)
+        	msg->sms.meta_data = octstr_create("");
+    	meta_data_set_values(msg->sms.meta_data, pdu->u.data_sm.tlv, "smpp", 1);
+    }
+
     return msg;
 
 error:
@@ -1195,6 +1211,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	case bind_transmitter:
 		if (check_login(box, pdu->u.bind_transmitter.system_id, pdu->u.bind_transmitter.password, pdu->u.bind_transmitter.system_type, SMPP_LOGIN_TRANSMITTER)) {
 			box->logged_in = 1;
+			box->version = pdu->u.bind_transmitter.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transmitter.system_type);
 			identify_to_bearerbox(box);
@@ -1209,6 +1226,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	case bind_receiver:
 		if (check_login(box, pdu->u.bind_receiver.system_id, pdu->u.bind_receiver.password, pdu->u.bind_receiver.system_type, SMPP_LOGIN_RECEIVER)) {
 			box->logged_in = 1;
+			box->version = pdu->u.bind_receiver.interface_version;
 			box->login_type = SMPP_LOGIN_RECEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_receiver.system_type);
 			identify_to_bearerbox(box);
@@ -1223,6 +1241,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	case bind_transceiver:
 		if (check_login(box, pdu->u.bind_transceiver.system_id, pdu->u.bind_transceiver.password, pdu->u.bind_transceiver.system_type, SMPP_LOGIN_TRANSCEIVER)) {
 			box->logged_in = 1;
+			box->version = pdu->u.bind_transceiver.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transceiver.system_type);
 			identify_to_bearerbox(box);
@@ -1358,8 +1377,8 @@ static Boxc *boxc_create(int fd, Octstr *ip, int ssl)
     boxc->boxc_id = NULL;
     boxc->routable = 0;
     boxc->smpp_pdu_counter = counter_create();
-    boxc->alt_charset = NULL; // todo: get from config
-    boxc->version = 0x33; // todo: get from config
+    boxc->alt_charset = NULL; /* todo: get from config */
+    boxc->version = 0x33; /* default value, set upon receiving a bind */
     boxc->route_to_smsc = route_to_smsc ? octstr_duplicate(route_to_smsc) : NULL;
 
     boxc->service_type = NULL;
@@ -1810,6 +1829,10 @@ static void init_smppbox(Cfg *cfg)
 
 	/* init dlr storage */
 	dlr_init(cfg);
+
+	/* initialize low level PDUs */
+	if (smpp_pdu_init(cfg) == -1)
+    	    panic(0, "Connot start with PDU init failed.");
 
 	/*
 	 * first we take the port number in bearerbox and other values from the
