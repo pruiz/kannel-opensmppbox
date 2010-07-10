@@ -28,3 +28,17 @@ AC_DEFUN([AC_CONFIG_SECTION],
   echo "${nl}${T_MD}$1 ...${T_ME}"
 ])
 
+dnl Check which SVN revision is and apply
+dnl the value to the given variable
+
+AC_DEFUN([AC_SVN_REVISION],
+[
+  if test -d ".svn"
+  then
+    revision=`svnversion .`
+    test -z "$revision" && revision="unknown"
+    $1="$revision"
+  fi
+])
+
+

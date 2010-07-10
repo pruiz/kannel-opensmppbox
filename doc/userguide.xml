@@ -441,7 +441,7 @@
   <para>
     In the status page of bearerbox, you can see all the clients that are
     currently connected to smppbox. They all appear as seperate "smsbox"
-    in the status page. Not that the ip address that is listed on the status
+    in the status page. Note that the ip address that is listed on the status
     page of bearerbox is the one of smppbox; not the client ip address of the
     smppbox user.
   </para>
