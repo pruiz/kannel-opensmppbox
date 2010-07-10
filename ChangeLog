@@ -1,3 +1,7 @@
+2010/07/10
+    Added documentation tree and building ("make docs").
+    Patch by Victor Luchitz to configure ton/npi.
+
 2010/07/08
     Patch by Victor Luchitz to support SMPP v3.4 tlv's.
 

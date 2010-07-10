@@ -92,8 +92,6 @@ static int smppbox_port_ssl = 0;
 static long bearerbox_port;
 static Octstr *bearerbox_host;
 static int bearerbox_port_ssl = 0;
-static Octstr *box_allow_ip;
-static Octstr *box_deny_ip;
 static Octstr *smpp_logins;
 static Counter *boxid;
 static int restart = 0;
@@ -101,6 +99,11 @@ static List *all_boxes;
 static Dict *list_dict;
 static Counter *catenated_sms_counter;
 static long sms_max_length = MAX_SMS_OCTETS;
+static long smpp_source_addr_ton = -1;
+static long smpp_source_addr_npi = -1;
+static int smpp_autodetect_addr = 0;
+static long smpp_dest_addr_ton = -1;
+static long smpp_dest_addr_npi = -1;
 
 Octstr *smppbox_id;
 Octstr *our_system_id;
@@ -136,11 +139,11 @@ typedef struct _boxc {
 
 
     Octstr	*service_type;
-    int		source_addr_ton;
-    int		source_addr_npi;
+    long	source_addr_ton;
+    long	source_addr_npi;
     int		autodetect_addr;
-    int		dest_addr_ton;
-    int		dest_addr_npi;
+    long	dest_addr_ton;
+    long	dest_addr_npi;
     int		alt_dcs;
     int		validityperiod;
     int		priority;
@@ -1382,11 +1385,13 @@ static Boxc *boxc_create(int fd, Octstr *ip, int ssl)
     boxc->route_to_smsc = route_to_smsc ? octstr_duplicate(route_to_smsc) : NULL;
 
     boxc->service_type = NULL;
-    boxc->source_addr_ton = 0;
-    boxc->source_addr_npi = 0;
-    boxc->autodetect_addr = 0;
-    boxc->dest_addr_ton = 0;
-    boxc->dest_addr_npi = 0;
+
+    boxc->source_addr_ton = smpp_source_addr_ton;
+    boxc->source_addr_npi = smpp_source_addr_npi;
+    boxc->autodetect_addr = smpp_autodetect_addr;
+    boxc->dest_addr_ton = smpp_dest_addr_ton;
+    boxc->dest_addr_npi = smpp_dest_addr_npi;
+
     boxc->alt_dcs = 0;
     boxc->validityperiod = 0;
     boxc->priority = 0;
@@ -1442,13 +1447,6 @@ static Boxc *accept_smpp(int fd, int ssl)
 
     ip = host_ip(client_addr);
 
-    if (is_allowed_ip(box_allow_ip, box_deny_ip, ip) == 0) {
-        info(0, "Box connection tried from denied host <%s>, disconnected",
-                octstr_get_cstr(ip));
-        octstr_destroy(ip);
-        close(newfd);
-        return NULL;
-    }
     newconn = boxc_create(newfd, ip, 0);
 
     /*
@@ -1693,7 +1691,7 @@ static void run_smppbox(void *arg)
 static void wait_for_connections(int fd, void (*function) (void *arg), 
     	    	    	    	 List *waited)
 {
-    int ret;
+    int ret = 0;
     int timeout = 10; /* 10 sec. */
 
     gw_assert(function != NULL);
@@ -1883,6 +1881,17 @@ static void init_smppbox(Cfg *cfg)
 		log_open(octstr_get_cstr(logfile), lvl, GW_NON_EXCL);
 		octstr_destroy(logfile);
 	}
+
+	if (cfg_get_integer(&smpp_source_addr_ton, grp, octstr_imm("src-addr-ton")) == -1)
+		smpp_source_addr_ton = -1;
+	if (cfg_get_integer(&smpp_source_addr_npi, grp, octstr_imm("src-addr-npi")) == -1)
+		smpp_source_addr_npi = -1;
+	if (cfg_get_bool(&smpp_autodetect_addr, grp, octstr_imm("src-addr-auto")) == -1)
+		smpp_autodetect_addr = 0;
+	if (cfg_get_integer(&smpp_dest_addr_ton, grp, octstr_imm("dst-addr-ton")) == -1)
+		smpp_dest_addr_ton = -1;
+	if (cfg_get_integer(&smpp_dest_addr_npi, grp, octstr_imm("dst-addr-npi")) == -1)
+		smpp_dest_addr_npi = -1;
 
 	catenated_sms_counter = counter_create();
         boxid = counter_create();

@@ -207,7 +207,7 @@ if test "$OLDJADE" = "no" ;
   then
     AC_CHECK_PROG(JADE, openjade, openjade, no)
   else
-    JADE = $OLDJADE
+    JADE=$OLDJADE
 fi
 AC_CHECK_PROG(JADETEX, jadetex, jadetex, no)
 AC_CHECK_PROG(PDFJADETEX, pdfjadetex, pdfjadetex, no)
