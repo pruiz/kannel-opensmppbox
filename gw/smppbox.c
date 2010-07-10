@@ -1882,15 +1882,15 @@ static void init_smppbox(Cfg *cfg)
 		octstr_destroy(logfile);
 	}
 
-	if (cfg_get_integer(&smpp_source_addr_ton, grp, octstr_imm("src-addr-ton")) == -1)
+	if (cfg_get_integer(&smpp_source_addr_ton, grp, octstr_imm("source-addr-ton")) == -1)
 		smpp_source_addr_ton = -1;
-	if (cfg_get_integer(&smpp_source_addr_npi, grp, octstr_imm("src-addr-npi")) == -1)
+	if (cfg_get_integer(&smpp_source_addr_npi, grp, octstr_imm("source-addr-npi")) == -1)
 		smpp_source_addr_npi = -1;
-	if (cfg_get_bool(&smpp_autodetect_addr, grp, octstr_imm("src-addr-auto")) == -1)
+	if (cfg_get_bool(&smpp_autodetect_addr, grp, octstr_imm("source-addr-auto")) == -1)
 		smpp_autodetect_addr = 0;
-	if (cfg_get_integer(&smpp_dest_addr_ton, grp, octstr_imm("dst-addr-ton")) == -1)
+	if (cfg_get_integer(&smpp_dest_addr_ton, grp, octstr_imm("dest-addr-ton")) == -1)
 		smpp_dest_addr_ton = -1;
-	if (cfg_get_integer(&smpp_dest_addr_npi, grp, octstr_imm("dst-addr-npi")) == -1)
+	if (cfg_get_integer(&smpp_dest_addr_npi, grp, octstr_imm("dest-addr-npi")) == -1)
 		smpp_dest_addr_npi = -1;
 
 	catenated_sms_counter = counter_create();
