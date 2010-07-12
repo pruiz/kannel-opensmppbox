@@ -79,6 +79,10 @@
 #include "gw/heartbeat.h"
 #include "gw/meta_data.h"
 
+#undef GW_NAME
+#undef GW_VERSION
+#include "../sb-config.h"
+
 /* our config */
 static Cfg *cfg;
 /* have we received restart cmd from bearerbox? */
@@ -1943,6 +1947,10 @@ static int smppbox_is_allowed_in_group(Octstr *group, Octstr *variable)
     return 0;
 }
 
+#undef OCTSTR
+#undef SINGLE_GROUP
+#undef MULTI_GROUP
+
 static int smppbox_is_single_group(Octstr *query)
 {
     #define OCTSTR(name)
@@ -1959,7 +1967,7 @@ static int smppbox_is_single_group(Octstr *query)
 int main(int argc, char **argv)
 {
 	int cf_index;
-	Octstr *filename;
+	Octstr *filename, *version;
 
 	gwlib_init();
 	all_boxes = gwlist_create();
@@ -1984,7 +1992,9 @@ int main(int argc, char **argv)
 
 	octstr_destroy(filename);
 
-	report_versions("smppbox");
+	version = octstr_format("smppbox version %s", GW_VERSION);
+	report_versions(octstr_get_cstr(version));
+	octstr_destroy(version);
 
 	init_smppbox(cfg);
 

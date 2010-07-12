@@ -241,7 +241,7 @@
 		<para>
       Latest Kannel must be installed (>1.4.3 svn version), including development
       headers and libraries. Kannel's gwlib is needed for compilation.
-      Additionally an working (running) Bearerbox is needed to route SMS to.
+      Additionally a working (running) Bearerbox is needed to route SMS to.
       If it is not available, SMS messages can possibly be lost and no more
       logins are permitted.
     </para>
@@ -251,7 +251,7 @@
       tool-chain is recommended)
     </para>
     <para>
-      To build this documentation, docbook and a number of other tools are needed.
+      To build this documentation, the docbook c.s. tools are needed.
     </para>
     </sect1>
 </chapter>
@@ -270,6 +270,7 @@
 		<para>
 			If you are upgrading from a previous version, please look at
 			<xref linkend="upgrading-notes"> for any important information.
+			See chapter 5.
 		</para>
 	</note>
 
@@ -305,9 +306,8 @@
 		</para>
 
 		<para>
-			We intend to cover everything you need to install and use Kannel
-			is in <citetitle>User's Guide</citetitle>, but the guide is still 
-			incomplete in this respect. The <filename>README</filename> is not
+			Everything you need to install and use SMPPBox is in <citetitle>User's Guide.</citetitle>
+			The guide is still incomplete in this respect. The <filename>README</filename> is not
 			supposed to be very important, nor contain much information. Instead,
 			it will just point to the other documentation.
 		</para>
@@ -318,9 +318,9 @@
 		<title>Compiling the proxy</title>
 
 		<para>If you are using SMPPBox on a supported platform, or one
-			that is similar enough to one, compiling Kannel should be trivial.
-			After you have unpacked the source package of your choose,
-			or after you have checked out the source code from CVS, enter
+			that is similar enough to one, compiling Smppbox should be trivial.
+			After you have unpacked the source package of your choice,
+			or after you have checked out the source code from SVN, enter
 			the following commands:
 
 			<screen><userinput>
@@ -359,7 +359,7 @@
 
 			The above, for instance, seems to be required on FreeBSD. If you
 			want to do development, you probably want to add CFLAGS that make
-			your compiler use warning messages. For example, for GCC:
+			your compiler print warning messages. For example, for GCC:
 
 			<screen><userinput>
 				CFLAGS='-Wall -g' ./configure
@@ -387,21 +387,21 @@
       
       The user that runs make install needs to have write permissions
       do the bindir directory. It defaults to <filename>/usr/local/sbin</filename>.
-      So possibly you need to be root to be able to install.
-
+      So possibly you need to be root to be able to install.  
 			The version number of the proxy is added to the file
 			during installation. This makes it easier to have several
 			versions installed, and makes it easy to go back to an older
 			version if the new version proves problematic.
 		</para>
 		<para>
-			After installation, you should now be able to run the SMPPBox init.d
+			After installation, you should now be able to run the Kannel init.d
 			script that will start the proxy. Run the script as root.
-      TODO: We don't have such a script yet.
+			For smppbox we don't have a seperate init script, but versions of the
+			Kannel init script are available that include starting smppbox.
 		</para>
 
 		<screen><userinput>
-			/etc/init.d/smppbox start
+			/etc/init.d/kannel start
 		</userinput></screen>
 
 		<para>
@@ -410,7 +410,7 @@
 		</para>
 
 		<screen><userinput>
-			/etc/init.d/smppbox stop
+			/etc/init.d/kannel stop
 		</userinput></screen>
 		
 		<para>
@@ -420,7 +420,7 @@
 		</para>
 
 		<screen><userinput>
-			/etc/init.d/smppbox restart
+			/etc/init.d/kannel restart
 		</userinput></screen>
 	</sect1>
 </chapter>
@@ -430,8 +430,7 @@
 
 	<para>
 		This chapter explains how the proxy, SMPPBox, is configured and used.
-		It covers the configuration file and keeping an eye on the gateway
-		while it is running.
+		It covers the configuration file and proxy administration during runtime.
 	</para>
 	<para>
 		There is only one configuration file for all parts of SMPPBox. If
@@ -439,11 +438,9 @@
 		needs to have its own configuration file, with its own options.
 	</para>
   <para>
-    In the status page of bearerbox, you can see all the clients that are
-    currently connected to smppbox. They all appear as seperate "smsbox"
-    in the status page. Note that the ip address that is listed on the status
-    page of bearerbox is the one of smppbox; not the client ip address of the
-    smppbox user.
+    In bearerbox's status page you can see all connected smppbox clients as different smsboxes.
+    Note that the ip address that is listed on the status page of bearerbox is the one of smppbox;
+    not the client ip address of the smppbox user.
   </para>
 
 	<sect1>

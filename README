@@ -25,11 +25,12 @@ And finally, as root:
 
 make install
 
-You need to have a compiled version of Kannel available in order to compile
+You need to have a development version of Kannel installed in order to compile
 smppbox.
 
 The Userguide has also valuable information about the install and configuration
-steps.
+steps. To create the userguide, run ./configure with --enable-docs and then
+type "make docs".
 
 HELP
 ====
