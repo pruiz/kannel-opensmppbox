@@ -1992,7 +1992,7 @@ int main(int argc, char **argv)
 
 	octstr_destroy(filename);
 
-	version = octstr_format("smppbox version %s", GW_VERSION);
+	version = octstr_format("smppbox version %s gwlib", GW_VERSION);
 	report_versions(octstr_get_cstr(version));
 	octstr_destroy(version);
 
