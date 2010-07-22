@@ -473,6 +473,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     SMPP_PDU *pdu, *pdu2;
     List *pdulist = gwlist_create(), *parts;
     int validity, dlrtype, catenate;
+    int dlr_state = 7; /* UNKNOWN */
     Msg *dlr;
     char *text, *tmps, err[4] = { '0', '0', '0', '\0' };
     Octstr *msgid, *msgid2, *dlr_status, *dlvrd;
@@ -606,20 +607,26 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	switch (dlrtype) {
 	case DLR_UNDEFINED:
 	case DLR_NOTHING:
+		dlr_state = 8;
 		dlr_status = octstr_imm("REJECTD");
 		break;
 	case DLR_SUCCESS:
+		dlr_state = 2;
 		dlr_status = octstr_imm("DELIVRD");
 		dlvrd = octstr_imm("001");
 		break;
 	case DLR_BUFFERED:
+		dlr_state = 6;
 		dlr_status = octstr_imm("ACCEPTD");
 		break;
 	case DLR_SMSC_SUCCESS:
+		/* please note that this state does not quite conform to the SMMP v3.4 spec */
+		dlr_state = 0;
 		dlr_status = octstr_imm("BUFFRED");
 		break;
 	case DLR_FAIL:
 	case DLR_SMSC_FAIL:
+		dlr_state = 5;
 		dlr_status = octstr_imm("UNDELIV");
 		break;
 	}
@@ -655,6 +662,10 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
 			pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
 			pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
+			if (box->version > 0x33) {
+				pdu2->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid2);
+				pdu2->u.deliver_sm.message_state = dlr_state;
+			}
 			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid2, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
 			octstr_destroy(msgid2);
 			gwlist_append(pdulist, pdu2);
@@ -662,6 +673,10 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
         	smpp_pdu_destroy(pdu);
 	}
 	else {
+		if (box->version > 0x33) {
+			pdu->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid);
+			pdu->u.deliver_sm.message_state = dlr_state;
+		}
 		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
 		gwlist_append(pdulist, pdu);
 	}
