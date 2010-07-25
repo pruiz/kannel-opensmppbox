@@ -14,7 +14,7 @@
 <book>
 
 <bookinfo>
-	<title>Open smppBox &version; User's Guide</title>
+	<title>Open smppbox &version; User's Guide</title>
 	<subtitle>Open Source SMPP proxy</subtitle>
 
 <authorgroup>
@@ -22,7 +22,7 @@
 		<firstname>Rene</firstname>
 		<surname>Kluwen</surname>
 		<affiliation>
-			<jobtitle>Chairman &amp; CTO</jobtitle>
+			<jobtitle>Open smppbox author</jobtitle>
 			<orgname>Chimit Ltd.</orgname>
 			<address> <email>rene.kluwen@chimit.nl</email>
 			</address>
@@ -32,7 +32,7 @@
 		<firstname>Victor</firstname>
 		<surname>Luchitz</surname>
 		<affiliation>
-			<jobtitle>Senior developer</jobtitle>
+			<jobtitle>TLV and other patches</jobtitle>
 			<orgname>Playfon</orgname>
 			<address><email>vluchits@gmail.com</email></address>
 		</affiliation>
@@ -42,7 +42,7 @@
 		<firstname>Nikos</firstname>
 		<surname>Balkanas</surname>
 		<affiliation>
-			<jobtitle>Technical Architect</jobtitle>
+			<jobtitle>Documentation and patches</jobtitle>
 			<orgname>InAccess Networks SA</orgname>
 			<address>
 				<email>nbalkanas@gmail.com</email>
