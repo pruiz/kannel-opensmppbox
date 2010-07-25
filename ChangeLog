@@ -1,3 +1,6 @@
+2010/07/25
+    Changed references to smppbox to open smppbox in userguide.
+
 2010/07/22
     Patch by Victor Luchitz for optional SMPP v3.4 tags used to
     indicate message_id and final message state in delivery reports.

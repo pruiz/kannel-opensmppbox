@@ -14,7 +14,7 @@
 <book>
 
 <bookinfo>
-	<title>SmppBox &version; User's Guide</title>
+	<title>Open smppBox &version; User's Guide</title>
 	<subtitle>Open Source SMPP proxy</subtitle>
 
 <authorgroup>
@@ -222,13 +222,13 @@
     <para>
       SMPP Users are defined in a flat text file, which is parsed at client
       connection (binding) time. This means that users can be added, changed or
-      removed without restarting smppbox. The file can be edited by any plain-text
+      removed without restarting open smppbox. The file can be edited by any plain-text
       file editor.
     </para>
 
     <para>
       It is possible to restrict ip addresses from which can be bound (connected)
-      per user. See the section on configuring smppbox below.
+      per user. See the section on configuring open smppbox below.
     </para>
   </sect1>
 
@@ -406,8 +406,8 @@
 		<para>
 			After installation, you should now be able to run the Kannel init.d
 			script that will start the proxy. Run the script as root.
-			For smppbox we don't have a seperate init script, but versions of the
-			Kannel init script are available that include starting smppbox.
+			For open smppbox we don't have a seperate init script, but versions of the
+			Kannel init script are available that include starting open smppbox.
 		</para>
 
 		<screen><userinput>
@@ -448,9 +448,9 @@
 		needs to have its own configuration file, with its own options.
 	</para>
   <para>
-    In bearerbox's status page you can see all connected smppbox clients as different smsboxes.
-    Note that the ip address that is listed on the status page of bearerbox is the one of smppbox;
-    not the client ip address of the smppbox user.
+    In bearerbox's status page you can see all connected open smppbox clients as different smsboxes.
+    Note that the ip address that is listed on the status page of bearerbox is the one of open smppbox;
+    not the client ip address of the open smppbox user.
   </para>
 
 	<sect1>
@@ -627,7 +627,7 @@ smpp-logins = /etc/smppbox/clients
 			</para>
 
 			<table frame="none">
-				<title>smppbox Group Variables</title>
+				<title>open smppbox Group Variables</title>
         <tgroup cols="3">
           <thead>
             <row>
@@ -667,7 +667,7 @@ smpp-logins = /etc/smppbox/clients
               </entry>
               <entry valign="bottom">
                 TCP port that bearerbox is listening for incoming
-                smppbox connections. Should be the same as smsbox-port
+                open smppbox connections. Should be the same as smsbox-port
                 configured in bearerbox. Defaults to 13001.
               </entry>
             </row>
@@ -679,8 +679,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>string</literal>
               </entry>
               <entry valign="bottom">
-                Optional smppbox instance identifier. This is used for logging
-                identification.
+                Optional open smppbox instance identifier. This is used for logging identification.
               </entry>
             </row>
             <row>
@@ -691,7 +690,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>port number</literal>
               </entry>
               <entry valign="bottom">
-                TCP port that smppbox is listening for incoming ESME
+                TCP port that open smppbox is listening for incoming ESME
                 connections. Defaults to 2345. If you want a different port 
                 number for each client, you will need to run a separate smppbox 
                 instance for each port you are listening on.
@@ -705,7 +704,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>filename</literal>
               </entry>
               <entry valign="bottom">
-                Filename that smppbox will log messages. If missing,
+                Filename that open smppbox will log messages. If missing,
                 logging is disabled.
               </entry>
             </row>
@@ -755,7 +754,7 @@ smpp-logins = /etc/smppbox/clients
               </entry>
               <entry valign="bottom">
                 File that contains authentication credentials for clients
-                connecting to smppbox. This should be a file with a single
+                connecting to open smppbox. This should be a file with a single
                 line per client, with username, password and system-type,
                 seperated by spaces. System-type is a special value. In
                 practice, you should have a different system-type for each
@@ -806,7 +805,7 @@ smpp-logins = /etc/smppbox/clients
 
       <para>
         The smpplogins.txt file, as set by the smpp-logins configuration
-        variable defines all users that are able to bind as ESME to smppbox.
+        variable defines all users that are able to bind as ESME to open smppbox.
         The first three tokens of this file are the username, password and
         foreign system-type that form the credentials on which the bind-
         method of the ESME are being matched with. The last token is optional
