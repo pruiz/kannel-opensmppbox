@@ -480,6 +480,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     /* split variables */
     List *list;
     unsigned long msg_sequence, msg_count;
+    unsigned long submit_date;
     int max_msgs;
     Octstr *header, *footer, *suffix, *split_chars;
     Msg *msg2;
@@ -552,7 +553,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     if (octstr_len(pdu->u.deliver_sm.destination_addr) > 20 ||
         octstr_len(pdu->u.deliver_sm.source_addr) > 20) {
         smpp_pdu_destroy(pdu);
-	gwlist_destroy(pdulist, NULL);
+        gwlist_destroy(pdulist, NULL);
         return NULL;
     }
 
@@ -580,7 +581,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
      * set the esm_class field
      * default is store and forward, plus udh and rpi if requested
      */
-    pdu->u.deliver_sm.esm_class = ESM_CLASS_SUBMIT_STORE_AND_FORWARD_MODE;
+    pdu->u.deliver_sm.esm_class = 0;
     if (octstr_len(msg->sms.udhdata))
         pdu->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class |
             ESM_CLASS_SUBMIT_UDH_INDICATOR;
@@ -590,7 +591,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 
     /* Is this a delivery report? */
     if (msg->sms.sms_type == report_mo) {
-	pdu->u.deliver_sm.esm_class |= (0x04 | 0x08);
+	pdu->u.deliver_sm.esm_class |= ESM_CLASS_DELIVER_SMSC_DELIVER_ACK;
 	dlrtype = msg->sms.dlr_mask;
 	parts = octstr_split(msg->sms.dlr_url, octstr_imm(";"));
 	msgid = gwlist_extract_first(parts);
@@ -644,6 +645,15 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		text = tmps + (5 * sizeof(char));
 	}
 
+	/* restore original submission date from service */
+	submit_date = 0;
+	if (octstr_len(dlr->sms.service) > 0) {
+		sscanf(octstr_get_cstr(dlr->sms.service), "%ld", &submit_date);
+	}
+	if (!submit_date || submit_date > dlr->sms.time) {
+		submit_date = msg->sms.time;
+	}
+
 	/* the msgids are in dlr->dlr_url as reported by Victor Luchitz */
 	gwlist_destroy(parts, octstr_destroy_item);
 	parts = octstr_split(dlr->sms.dlr_url, octstr_imm(";"));
@@ -666,7 +676,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 				pdu2->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid2);
 				pdu2->u.deliver_sm.message_state = dlr_state;
 			}
-			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid2, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
+			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid2, dlvrd, submit_date, dlr->sms.time, dlr_status, err, text);
 			octstr_destroy(msgid2);
 			gwlist_append(pdulist, pdu2);
 		}
@@ -677,7 +687,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			pdu->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid);
 			pdu->u.deliver_sm.message_state = dlr_state;
 		}
-		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid, dlvrd, msg->sms.time, dlr->sms.time, dlr_status, err, text);
+		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%ld done date:%ld stat:%S err:%s text:%12s", msgid, dlvrd, submit_date, dlr->sms.time, dlr_status, err, text);
 		gwlist_append(pdulist, pdu);
 	}
 	octstr_destroy(msgid);
@@ -989,6 +999,8 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     	meta_data_set_values(msg->sms.meta_data, pdu->u.submit_sm.tlv, "smpp", 1);
     }
 
+    msg->sms.time = time(NULL);
+
     return msg;
 
 error:
@@ -1140,6 +1152,8 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
         	msg->sms.meta_data = octstr_create("");
     	meta_data_set_values(msg->sms.meta_data, pdu->u.data_sm.tlv, "smpp", 1);
     }
+
+    msg->sms.time = time(NULL);
 
     return msg;
 
@@ -1302,6 +1316,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.data_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
 					msgid = generate_smppid(msg2);
 					if (parts_list) {
 						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
@@ -1335,6 +1350,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.submit_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
 					msgid = generate_smppid(msg2);
 					if (parts_list) {
 						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
