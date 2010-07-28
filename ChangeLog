@@ -1,6 +1,11 @@
+2010/07/28
+    Patch by Victor Luchitz to add tlv's to delivery reports.
+    At the same time fixed format of submit data/done date in dlrs.
+
 2010/07/27
     1. Fixed esm_class for deliver_sm's.
     2. fixed original submit date in dlr's.
+    Patches by y Victor Luchitz
 
 2010/07/25
     Changed references to smppbox to open smppbox in userguide.
