@@ -137,7 +137,7 @@ typedef struct _boxc {
     Semaphore	*pending;
     volatile sig_atomic_t alive;
     Octstr	*boxc_id; /* identifies the connected smppbox instance */
-    Octstr	*binfo;
+    Octstr	*account;
     Octstr	*route_to_smsc;
     /* used to mark connection usable or still waiting for ident. msg */
     volatile int routable;
@@ -865,7 +865,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
         goto error;
     msg->sms.sender = pdu->u.submit_sm.source_addr;
     pdu->u.submit_sm.source_addr = NULL;
-    msg->sms.binfo = octstr_duplicate(box->binfo);
+    msg->sms.account = octstr_duplicate(box->account);
 
     /* 
      * Follows SMPP spec. v3.4. issue 1.2 
@@ -1262,7 +1262,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_transmitter.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transmitter.system_type);
-			box->binfo = octstr_duplicate(pdu->u.bind_transmitter.system_id);
+			box->account = octstr_duplicate(pdu->u.bind_transmitter.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transmitter_resp, pdu->u.bind_transmitter.sequence_number);
 			resp->u.bind_transmitter_resp.system_id = octstr_duplicate(our_system_id);
@@ -1278,7 +1278,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_receiver.interface_version;
 			box->login_type = SMPP_LOGIN_RECEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_receiver.system_type);
-			box->binfo = octstr_duplicate(pdu->u.bind_receiver.system_id);
+			box->account = octstr_duplicate(pdu->u.bind_receiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_receiver_resp, pdu->u.bind_receiver.sequence_number);
 			resp->u.bind_receiver_resp.system_id = octstr_duplicate(our_system_id);
@@ -1294,7 +1294,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_transceiver.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
 			box->boxc_id = octstr_duplicate(pdu->u.bind_transceiver.system_type);
-			box->binfo = octstr_duplicate(pdu->u.bind_transceiver.system_id);
+			box->account = octstr_duplicate(pdu->u.bind_transceiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transceiver_resp, pdu->u.bind_transceiver.sequence_number);
 			resp->u.bind_transceiver_resp.system_id = octstr_duplicate(our_system_id);

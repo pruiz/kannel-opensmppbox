@@ -2,8 +2,10 @@
     Added extra actual parameter because the dlr_find prototype
     in the Kannel sources has been changed.
     The smpp username (system-id) is relayed to bearerbox as
-    billing information (msg->sms.binfo). This can be used in
+    billing information (msg->sms.account). This can be used in
     order to bill the reflected user.
+    A legacy sqlbox patch is available that uses this information
+    for pre-paid billing purposes.
 
 2010/07/28
     Patch by Victor Luchitz to add tlv's to delivery reports.
