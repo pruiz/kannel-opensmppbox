@@ -1317,7 +1317,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		msg = data_sm_to_msg(box, pdu, &reason);
 		msg2 = msg;
 		if (msg == NULL) {
-			resp = smpp_pdu_create(generic_nack, pdu->u.submit_sm.sequence_number);
+			resp = smpp_pdu_create(generic_nack, pdu->u.data_sm.sequence_number);
 			resp->u.generic_nack.command_status = SMPP_ESME_RUNKNOWNERR;
 		}
 		else {
