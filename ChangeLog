@@ -1,5 +1,10 @@
 2010/0802
     Added optional support for PAM authentication. See userguide.
+    Added recognition of bearerbox acks for messages. If for
+    some reason the message is acked negatively, open smppbox
+    returns an error to the ESME and vice versa.
+    Also an ESME-timeout can now be configured in smppbox.conf.
+    Changes made by Rene Kluwen rene.kluwen@chimit.nl.
 
 2010/08/01
     Added extra actual parameter because the dlr_find prototype

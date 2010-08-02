@@ -842,6 +842,14 @@ smpp-logins = /etc/smppbox/clients
       Manually override destination address NPI setting for the link.
 		(Defaults to -1, do not override).
      </entry></row>
+
+    <row><entry><literal>timeout (o)</literal></entry>
+      <entry><literal>number</literal></entry>
+      <entry valign="bottom">
+      The smpp connection gets dropped if open smppbox does not
+      receive a valid pdu in this number of seconds.
+		(Defaults to 300).
+     </entry></row>
           </tbody>
         </tgroup>
 </table>

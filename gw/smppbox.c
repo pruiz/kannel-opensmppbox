@@ -115,9 +115,10 @@ static int smpp_autodetect_addr = 0;
 static long smpp_dest_addr_ton = -1;
 static long smpp_dest_addr_npi = -1;
 
-Octstr *smppbox_id;
-Octstr *our_system_id;
-Octstr *route_to_smsc;
+static Octstr *smppbox_id;
+static Octstr *our_system_id;
+static Octstr *route_to_smsc;
+static time_t smpp_timeout;
 
 static int systemidisboxcid;
 static int enablepam;
@@ -148,8 +149,11 @@ typedef struct _boxc {
     Semaphore	*pending;
     volatile sig_atomic_t alive;
     Octstr	*boxc_id; /* identifies the connected smppbox instance */
-    Octstr	*account;
+    Octstr	*sms_service;
     Octstr	*route_to_smsc;
+    Dict	*msg_acks;
+    Dict	*deliver_acks;
+    time_t	last_pdu_received;
     /* used to mark connection usable or still waiting for ident. msg */
     volatile int routable;
 
@@ -168,6 +172,10 @@ typedef struct _boxc {
 
 } Boxc;
 
+void smpp_pdu_destroy_item(void *pdu)
+{
+	smpp_pdu_destroy(pdu);
+}
 
 /*
  * Use PAM (Pluggable Authentication Module) to check sendsms authentication.
@@ -254,7 +262,6 @@ static int authenticate(const char *acl, const char *login, const char *passwd)
 }
 
 #endif /* HAVE_PAM */
-
 
 /* check if login exists in database */
 int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_type, smpp_login login_type) {
@@ -976,7 +983,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
         goto error;
     msg->sms.sender = pdu->u.submit_sm.source_addr;
     pdu->u.submit_sm.source_addr = NULL;
-    msg->sms.account = octstr_duplicate(box->account);
+    msg->sms.service = octstr_duplicate(box->sms_service);
 
     /* 
      * Follows SMPP spec. v3.4. issue 1.2 
@@ -1346,11 +1353,12 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 
 static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	SMPP_PDU *resp = NULL;
-	Msg *msg, *msg2;
+	Msg *msg, *msg2, *mack;
 	long reason;
 	Octstr *msgid = NULL;
 	int msg_to_send = 1;
 	List *parts_list = NULL;
+	char id[UUID_STR_LEN + 1];
 
 	dump_pdu("Got PDU:", box->boxc_id, pdu);
 	switch (pdu->type) {
@@ -1373,7 +1381,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_transmitter.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
 			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
-			box->account = octstr_duplicate(pdu->u.bind_transmitter.system_id);
+			box->sms_service = octstr_duplicate(pdu->u.bind_transmitter.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transmitter_resp, pdu->u.bind_transmitter.sequence_number);
 			resp->u.bind_transmitter_resp.system_id = octstr_duplicate(our_system_id);
@@ -1389,7 +1397,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_receiver.interface_version;
 			box->login_type = SMPP_LOGIN_RECEIVER;
 			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
-			box->account = octstr_duplicate(pdu->u.bind_receiver.system_id);
+			box->sms_service = octstr_duplicate(pdu->u.bind_receiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_receiver_resp, pdu->u.bind_receiver.sequence_number);
 			resp->u.bind_receiver_resp.system_id = octstr_duplicate(our_system_id);
@@ -1405,7 +1413,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->version = pdu->u.bind_transceiver.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
 			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
-			box->account = octstr_duplicate(pdu->u.bind_transceiver.system_id);
+			box->sms_service = octstr_duplicate(pdu->u.bind_transceiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transceiver_resp, pdu->u.bind_transceiver.sequence_number);
 			resp->u.bind_transceiver_resp.system_id = octstr_duplicate(our_system_id);
@@ -1450,6 +1458,10 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
 				}
+				uuid_unparse(msg2->sms.id, id);
+				msgid = octstr_create(id);
+				dict_put(box->msg_acks, msgid, resp);
+				resp = NULL;
 				send_msg(box->bearerbox_connection, box, msg2);
 				if (parts_list) {
 					/* destroy values */
@@ -1484,6 +1496,10 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
 				}
+				uuid_unparse(msg2->sms.id, id);
+				msgid = octstr_create(id);
+				dict_put(box->msg_acks, msgid, resp);
+				resp = NULL;
 				send_msg(box->bearerbox_connection, box, msg2);
 				if (parts_list) {
 					/* destroy values */
@@ -1493,7 +1509,18 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		}
 		break;
 	case deliver_sm_resp:
-		/* thank you */
+		msgid = octstr_format("%ld", pdu->u.deliver_sm_resp.sequence_number);
+		mack = dict_get(box->deliver_acks, msgid);
+		if (mack) {
+			msg = msg_duplicate(mack);
+			/* TODO: ack_failed_tmp */
+			if (pdu->u.deliver_sm_resp.command_status != 0) {
+				msg->ack.nack = ack_failed;
+			}
+			send_msg(box->bearerbox_connection, box, msg);
+			dict_put(box->deliver_acks, msgid, NULL);
+		}
+		octstr_destroy(msgid);
 		break;
 	case unbind_resp:
 		box->logged_in = 0;
@@ -1544,6 +1571,8 @@ static Boxc *boxc_create(int fd, Octstr *ip, int ssl)
     boxc->alt_charset = NULL; /* todo: get from config */
     boxc->version = 0x33; /* default value, set upon receiving a bind */
     boxc->route_to_smsc = route_to_smsc ? octstr_duplicate(route_to_smsc) : NULL;
+    boxc->msg_acks = dict_create(10, smpp_pdu_destroy_item);
+    boxc->deliver_acks = dict_create(10, msg_destroy_item);
 
     boxc->service_type = NULL;
 
@@ -1582,6 +1611,8 @@ static void boxc_destroy(Boxc *boxc)
     }
     if (boxc->client_ip)
 	    octstr_destroy(boxc->client_ip);
+    dict_destroy(boxc->msg_acks);
+    dict_destroy(boxc->deliver_acks);
     gw_free(boxc);
 }
 
@@ -1634,6 +1665,7 @@ static void smpp_to_bearerbox(void *arg)
     SMPP_PDU *pdu;
     long len;
 
+    box->last_pdu_received = time(NULL);
     while (smppbox_status == SMPP_RUNNING && box->alive) {
 		len = 0;
 		switch (read_pdu(box, conn, &len, &pdu)) {
@@ -1643,9 +1675,13 @@ static void smpp_to_bearerbox(void *arg)
 			break;
 		case 0:
 			// idling
+			if (time(NULL) - box->last_pdu_received > smpp_timeout) {
+				box->alive = 0;
+			}
 	    		gwthread_sleep(1);
 			break;
 		case 1:
+			box->last_pdu_received = time(NULL);
 			handle_pdu(conn, box, pdu);
 			break;
 		}
@@ -1656,21 +1692,21 @@ static void smpp_to_bearerbox(void *arg)
 }
 
 /* if this login was made as a transmitter, then find the corresponding receiver connection */
-static Connection *find_receiver_connection(Boxc *box)
+static Boxc *find_receiver_box(Boxc *box)
 {
 	Boxc *thisbox;
 	int cnt;
 
 	if (box->login_type == SMPP_LOGIN_RECEIVER || box->login_type == SMPP_LOGIN_TRANSCEIVER) {
-		return box->smpp_connection;
+		return box;
 	}
 	for (cnt = 0; cnt < gwlist_len(all_boxes); cnt++) {
 		thisbox = (Boxc *)gwlist_get(all_boxes, cnt);
-		if ((box->login_type == SMPP_LOGIN_RECEIVER || box->login_type == SMPP_LOGIN_TRANSCEIVER) && (octstr_compare(thisbox->boxc_id, box->boxc_id) == 0)) {
-			return thisbox->smpp_connection;
+		if ((thisbox->login_type == SMPP_LOGIN_RECEIVER || thisbox->login_type == SMPP_LOGIN_TRANSCEIVER) && (octstr_compare(thisbox->boxc_id, box->boxc_id) == 0) && thisbox->alive) {
+			return thisbox;
 		}
 	}
-	return box->smpp_connection;
+	return box;
 }
 
 static void bearerbox_to_smpp(void *arg)
@@ -1680,7 +1716,9 @@ static void bearerbox_to_smpp(void *arg)
     SMPP_PDU *pdu;
     List *pdulist;
     int dreport;
-    Connection *receiver_connection;
+    Boxc *receiver_box;
+    char id[UUID_STR_LEN + 1];
+    Octstr *msgid;
 
     while (smppbox_status == SMPP_RUNNING && box->alive) {
 
@@ -1710,7 +1748,40 @@ static void bearerbox_to_smpp(void *arg)
             continue;
         }
 	if (msg_type(msg) == ack) {
-		// todo: what do we do here?
+	    uuid_unparse(msg->ack.id, id);
+	    msgid = octstr_create(id);
+	    pdu = dict_get(box->msg_acks, msgid);
+	    if (pdu) {
+		switch (msg->ack.nack) {
+		case ack_buffered:
+		case ack_success:
+			/* we can send the submit_sm_resp as-is */
+			break;
+		case ack_failed:
+		case ack_failed_tmp:
+			switch (pdu->type) {
+			case submit_sm_resp:
+				octstr_destroy(pdu->u.submit_sm_resp.message_id);
+				pdu->u.submit_sm_resp.message_id = NULL;
+				pdu->u.submit_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
+				break;
+			case data_sm_resp:
+				octstr_destroy(pdu->u.data_sm_resp.message_id);
+				pdu->u.data_sm_resp.message_id = NULL;
+				pdu->u.data_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
+				break;
+			}
+		default:
+			debug("smppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
+			break;
+		}
+		send_pdu(box->smpp_connection, box->boxc_id, pdu);
+		dict_put(box->msg_acks, msgid, NULL); /* also destroys item */
+	    }
+	    else {
+		debug("smppbox", 0, "Ack to unknown message: %s.", id);
+	    }
+	    octstr_destroy(msgid);
 	}
         if (!box->alive) {
 		msg_destroy(msg);
@@ -1788,16 +1859,23 @@ static void bearerbox_to_smpp(void *arg)
 		mack->ack.time = msg->sms.time;
 		uuid_copy(mack->ack.id, msg->sms.id);
 
-		pdulist = msg_to_pdu(box, msg);
+		msgid = NULL;
+		receiver_box = find_receiver_box(box);
+		pdulist = msg_to_pdu(receiver_box, msg);
 		if (pdulist != NULL) {
-			receiver_connection = find_receiver_connection(box);
 			while ((pdu = gwlist_extract_first(pdulist)) != NULL) {
-				send_pdu(receiver_connection, box->boxc_id, pdu);
+				if (NULL == msgid) {
+					/* Put ack in dict. We will send it as soon as we received a deliver_sm_resp */
+					msgid = octstr_format("%ld", pdu->u.deliver_sm.sequence_number);
+					dict_put(receiver_box->deliver_acks, msgid, mack);
+				}
+				send_pdu(receiver_box->smpp_connection, box->boxc_id, pdu);
 				smpp_pdu_destroy(pdu);
 			}
+			if (msgid)
+				octstr_destroy(msgid);
 			gwlist_destroy(pdulist, NULL);
 		}
-		send_msg(box->bearerbox_connection, box, mack);
 	}
         msg_destroy(msg);
     }
@@ -2045,6 +2123,8 @@ static void init_smppbox(Cfg *cfg)
 		octstr_destroy(logfile);
 	}
 
+	if (cfg_get_integer(&smpp_timeout, grp, octstr_imm("timeout")) == -1)
+		smpp_timeout = TIMEOUT_SECONDS;
 	if (cfg_get_integer(&smpp_source_addr_ton, grp, octstr_imm("source-addr-ton")) == -1)
 		smpp_source_addr_ton = -1;
 	if (cfg_get_integer(&smpp_source_addr_npi, grp, octstr_imm("source-addr-npi")) == -1)
