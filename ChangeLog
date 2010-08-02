@@ -1,3 +1,6 @@
+2010/0802
+    Added optional support for PAM authentication. See userguide.
+
 2010/08/01
     Added extra actual parameter because the dlr_find prototype
     in the Kannel sources has been changed.

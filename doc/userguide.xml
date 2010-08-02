@@ -761,6 +761,52 @@ smpp-logins = /etc/smppbox/clients
                 connecting client. See description of smpplogins.txt below.
               </entry>
             </row>
+            <row>
+              <entry>
+                <literal>use-systemid-as-smsboxid (o)</literal>
+              </entry>
+              <entry>
+                <literal>boolean</literal>
+              </entry>
+              <entry valign="bottom">
+		If set to true, this smppbox user is authenticating as smsbox
+		to bearerbox as the system-id value (first parameter in
+		smpplogins.txt). If set to false (which is the default) then
+		the smsbox-id is the same as system-type (third parameter in
+		smpplogins.txt). If you are using PAM authentication, then
+		use-systemid-as-smsboxid must be set to true.
+              </entry>
+            </row>
+            <row>
+              <entry>
+                <literal>enable-pam (o)</literal>
+              </entry>
+              <entry>
+                <literal>boolean</literal>
+              </entry>
+              <entry valign="bottom">
+		If set to true, then open smpp will use PAM authentication
+		besides the usual smpplogins.txt file. The smpplogins.txt
+		file takes precedence here. If there the user cannot be
+		found there, open smppbox will try to use PAM authentication.
+		use-systemid-as-smsboxid must be set to true if enable-pam
+		is also true. For this to work, open smppbox must be compiled
+		with pam-support (configure --enable-pam).
+              </entry>
+            </row>
+            <row>
+              <entry>
+                <literal>pam-acl (o)</literal>
+              </entry>
+              <entry>
+                <literal>pam acl account</literal>
+              </entry>
+              <entry valign="bottom">
+		If enable-pam is true, authentication is done against
+		this pam account. It must be present in /etc/pam.d.
+		If not given, then the value "kannel" is used.
+              </entry>
+            </row>
     <row><entry><literal>source-addr-ton (o)</literal></entry>
       <entry><literal>number</literal></entry>
       <entry valign="bottom">
@@ -838,6 +884,9 @@ smpp-logins = /etc/smppbox/clients
         Also group = smsbox-route in Kannel.conf "listens" to this value.
         For this reason, it is important to use a different system-type for each
         different client unless they should receive each others' messages.
+
+	In case use-systemid-as-smsboxid = true, then in stead of system-type,
+	system-id will be used as this "smsbox-id" value.
       </para>
     </sect2>
 	</sect1>

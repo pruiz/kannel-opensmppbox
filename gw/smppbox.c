@@ -83,6 +83,12 @@
 #undef GW_VERSION
 #include "../sb-config.h"
 
+#ifdef HAVE_PAM_SECURITY
+#include <security/pam_appl.h>
+#elif defined HAVE_PAM_PAM
+#include <pam/pam_appl.h>
+#endif
+
 /* our config */
 static Cfg *cfg;
 /* have we received restart cmd from bearerbox? */
@@ -112,6 +118,11 @@ static long smpp_dest_addr_npi = -1;
 Octstr *smppbox_id;
 Octstr *our_system_id;
 Octstr *route_to_smsc;
+
+static int systemidisboxcid;
+static int enablepam;
+static Octstr *pamacl;
+
 
 #define TIMEOUT_SECONDS 300
 
@@ -157,9 +168,98 @@ typedef struct _boxc {
 
 } Boxc;
 
+
+/*
+ * Use PAM (Pluggable Authentication Module) to check sendsms authentication.
+ */
+
+#ifdef HAVE_PAM
+
+typedef const struct pam_message pam_message_type;
+
+static const char *PAM_username;
+static const char *PAM_password;
+
+static int PAM_conv (int num_msg, pam_message_type **msg,
+		     struct pam_response **resp,
+		     void *appdata_ptr)
+{
+    int count = 0, replies = 0;
+    struct pam_response *repl = NULL;
+    int size = sizeof(struct pam_response);
+
+#define GET_MEM \
+	repl = gw_realloc(repl, size); \
+	size += sizeof(struct pam_response)
+#define COPY_STRING(s) (s) ? gw_strdup(s) : NULL
+
+    for (count = 0; count < num_msg; count++) {
+	switch (msg[count]->msg_style) {
+	case PAM_PROMPT_ECHO_ON:
+	    GET_MEM;
+	    repl[replies].resp_retcode = PAM_SUCCESS;
+	    repl[replies++].resp = COPY_STRING(PAM_username);
+	    /* PAM frees resp */
+	    break;
+
+	case PAM_PROMPT_ECHO_OFF:
+	    GET_MEM;
+	    repl[replies].resp_retcode = PAM_SUCCESS;
+	    repl[replies++].resp = COPY_STRING(PAM_password);
+	    /* PAM frees resp */
+	    break;
+
+	case PAM_TEXT_INFO:
+	    warning(0, "unexpected message from PAM: %s", msg[count]->msg);
+	    break;
+
+	case PAM_ERROR_MSG:
+	default:
+	    /* Must be an error of some sort... */
+	    error(0, "unexpected error from PAM: %s", msg[count]->msg);
+	    gw_free(repl);
+	    return PAM_CONV_ERR;
+	}
+    }
+    if (repl)
+	*resp = repl;
+    return PAM_SUCCESS;
+}
+
+static struct pam_conv PAM_conversation = {
+    &PAM_conv,
+    NULL
+};
+
+
+static int authenticate(const char *acl, const char *login, const char *passwd)
+{
+    pam_handle_t *pamh;
+    int pam_error;
+    
+    PAM_username = login;
+    PAM_password = passwd;
+    
+    pam_error = pam_start(acl, login, &PAM_conversation, &pamh);
+    info(0, "Starting PAM for user: %s", login);
+    if (pam_error != PAM_SUCCESS ||
+        (pam_error = pam_authenticate(pamh, 0)) != PAM_SUCCESS) {
+        warning(0, "PAM auth failed for user: %s", login);
+	pam_end(pamh, pam_error);
+	return 0;
+    }
+    pam_end(pamh, PAM_SUCCESS);
+    info(0, "smppbox login by <%s>", login);
+    return 1;
+}
+
+#endif /* HAVE_PAM */
+
+
 /* check if login exists in database */
 int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_type, smpp_login login_type) {
 	int box;
+	int success;
 	Boxc *thisbox;
 	FILE *fp;
 	char systemid[255], passw[255], systemtype[255], allowed_ips[1024];
@@ -171,7 +271,13 @@ int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_
 	}
 	while (!feof(fp)) {
 		fscanf(fp, "%s %s %s %s\n", systemid, passw, systemtype, allowed_ips);
-		if (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0 && strcmp(octstr_get_cstr(system_type), systemtype) == 0) {
+		if (systemidisboxcid) {
+			success = (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0);
+		}
+		else {
+			success = (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0 && strcmp(octstr_get_cstr(system_type), systemtype));
+		}
+		if (success) {
 			if (strcmp(allowed_ips, "") != 0)  {
 				allowed_ips_str = octstr_create(allowed_ips);
 				if (is_allowed_ip(allowed_ips_str, octstr_imm("*.*.*.*"), boxc->client_ip) == 0) {
@@ -186,6 +292,11 @@ int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_
 		}
 	}
 	fclose(fp);
+#ifdef HAVE_PAM
+	if (enablepam && authenticate(octstr_get_cstr(pamacl), octstr_get_cstr(system_id), octstr_get_cstr(password))) {
+		goto valid_login;
+	}
+#endif
 	return 0;
 valid_login:
 	for (box = 0; box < gwlist_len(all_boxes); box++) {
@@ -1261,7 +1372,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_transmitter.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
-			box->boxc_id = octstr_duplicate(pdu->u.bind_transmitter.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
 			box->account = octstr_duplicate(pdu->u.bind_transmitter.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transmitter_resp, pdu->u.bind_transmitter.sequence_number);
@@ -1277,7 +1388,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_receiver.interface_version;
 			box->login_type = SMPP_LOGIN_RECEIVER;
-			box->boxc_id = octstr_duplicate(pdu->u.bind_receiver.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
 			box->account = octstr_duplicate(pdu->u.bind_receiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_receiver_resp, pdu->u.bind_receiver.sequence_number);
@@ -1293,7 +1404,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_transceiver.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
-			box->boxc_id = octstr_duplicate(pdu->u.bind_transceiver.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
 			box->account = octstr_duplicate(pdu->u.bind_transceiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transceiver_resp, pdu->u.bind_transceiver.sequence_number);
@@ -1874,6 +1985,8 @@ static void init_smppbox(Cfg *cfg)
 	bearerbox_port_ssl = 0;
 	logfile = NULL;
 	lvl = 0;
+	systemidisboxcid = 0; /* default backward compatible */
+	enablepam = 0; /* also default false */
 
 	/* init dlr storage */
 	dlr_init(cfg);
@@ -1942,6 +2055,24 @@ static void init_smppbox(Cfg *cfg)
 		smpp_dest_addr_ton = -1;
 	if (cfg_get_integer(&smpp_dest_addr_npi, grp, octstr_imm("dest-addr-npi")) == -1)
 		smpp_dest_addr_npi = -1;
+
+	cfg_get_bool(&systemidisboxcid, grp, octstr_imm("use-systemid-as-smsboxid"));
+	cfg_get_bool(&enablepam, grp, octstr_imm("enable-pam"));
+	pamacl = cfg_get(grp, octstr_imm("pam-acl"));
+	if (NULL == pamacl) {
+		pamacl = octstr_create("kannel");
+	}
+	if (enablepam && !systemidisboxcid) {
+		panic(0, "enable-pam requires systemid-is-boxcid=true.");
+	}
+#ifndef HAVE_PAM
+	if (enablepam) {
+		panic(0, "enable-pam is set but we are compiked without pam support.");
+	}
+#endif
+	if (enablepam) {
+		info(0, "Using PAM authentication.");
+	}
 
 	catenated_sms_counter = counter_create();
         boxid = counter_create();

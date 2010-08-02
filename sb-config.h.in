@@ -22,8 +22,14 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
+
 /* Define to 1 if you have the `gwlib' library (-lgwlib). */
 #undef HAVE_LIBGWLIB
+
+/* Define to 1 if you have the `pam' library (-lpam). */
+#undef HAVE_LIBPAM
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
@@ -55,6 +61,15 @@
 
 /* Define to 1 if you have the <openssl/x509.h> header file. */
 #undef HAVE_OPENSSL_X509_H
+
+/* "HAVE_PAM" */
+#undef HAVE_PAM
+
+/* "HAVE_PAM_PAM" */
+#undef HAVE_PAM_PAM
+
+/* "HAVE_PAM_SECURITY" */
+#undef HAVE_PAM_SECURITY
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H

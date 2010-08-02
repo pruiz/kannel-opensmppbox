@@ -76,4 +76,7 @@ SINGLE_GROUP(smppbox,
 	OCTSTR(source-addr-auto)
 	OCTSTR(dest-addr-ton)
 	OCTSTR(dest-addr-npi)
+	OCTSTR(use-systemid-as-smsboxid)
+	OCTSTR(enable-pam)
+	OCTSTR(pam-acl)
 )
