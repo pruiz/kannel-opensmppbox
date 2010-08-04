@@ -1355,7 +1355,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	SMPP_PDU *resp = NULL;
 	Msg *msg, *msg2, *mack;
 	long reason;
-	Octstr *msgid = NULL;
+	Octstr *msgid = NULL, *hold_service;
 	int msg_to_send = 1;
 	List *parts_list = NULL;
 	char id[UUID_STR_LEN + 1];
@@ -1450,6 +1450,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.data_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					hold_service = msg2->sms.service;
 					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
 					msgid = generate_smppid(msg2);
 					if (parts_list) {
@@ -1457,6 +1458,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					}
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
+					msg2->sms.service = hold_service;
 				}
 				uuid_unparse(msg2->sms.id, id);
 				msgid = octstr_create(id);
@@ -1488,6 +1490,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.submit_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
+					hold_service = msg2->sms.service;
 					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
 					msgid = generate_smppid(msg2);
 					if (parts_list) {
@@ -1495,6 +1498,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					}
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
+					msg2->sms.service = hold_service;
 				}
 				uuid_unparse(msg2->sms.id, id);
 				msgid = octstr_create(id);
@@ -1770,8 +1774,10 @@ static void bearerbox_to_smpp(void *arg)
 				pdu->u.data_sm_resp.message_id = NULL;
 				pdu->u.data_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
 				break;
+			default:
+				debug("smppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
+				break;
 			}
-			debug("smppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
 			break;
 		default:
 			debug("smppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
