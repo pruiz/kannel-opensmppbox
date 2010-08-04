@@ -1771,6 +1771,8 @@ static void bearerbox_to_smpp(void *arg)
 				pdu->u.data_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
 				break;
 			}
+			debug("smppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
+			break;
 		default:
 			debug("smppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
 			break;
