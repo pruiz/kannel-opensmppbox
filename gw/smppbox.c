@@ -1458,6 +1458,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					}
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
+					octstr_destroy(msg2->sms.service);
 					msg2->sms.service = hold_service;
 				}
 				uuid_unparse(msg2->sms.id, id);
@@ -1498,6 +1499,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 					}
 					dlr_add(box->boxc_id, msgid, msg2);
 					octstr_destroy(msgid);
+					octstr_destroy(msg2->sms.service);
 					msg2->sms.service = hold_service;
 				}
 				uuid_unparse(msg2->sms.id, id);
