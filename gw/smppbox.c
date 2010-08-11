@@ -969,6 +969,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
 
     msg = msg_create(sms);
     gw_assert(msg != NULL);
+    msg->sms.sms_type = mt_push;
     *reason = SMPP_ESME_ROK;
 
     /* 
@@ -1130,7 +1131,6 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     }
 
     msg->sms.time = time(NULL);
-    msg->sms.sms_type = mt_push;
 
     return msg;
 
@@ -1155,6 +1155,7 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
 
     msg = msg_create(sms);
     gw_assert(msg != NULL);
+    msg->sms.sms_type = mt_push;
     *reason = SMPP_ESME_ROK;
 
     /* 
@@ -1285,7 +1286,6 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     }
 
     msg->sms.time = time(NULL);
-    msg->sms.sms_type = mt_push;
 
     return msg;
 
