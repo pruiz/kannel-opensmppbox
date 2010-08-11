@@ -1,4 +1,8 @@
-2010/0802
+2010/08/11
+    Filled in msg->sms.sms_type that was incorrectly left undefined.
+    Thanks to Tomasz Konopka for reporting.
+
+2010/08/02
     Added optional support for PAM authentication. See userguide.
     Added recognition of bearerbox acks for messages. If for
     some reason the message is acked negatively, open smppbox

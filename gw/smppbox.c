@@ -1130,6 +1130,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     }
 
     msg->sms.time = time(NULL);
+    msg->sms.sms_type = mt_push;
 
     return msg;
 
@@ -1284,6 +1285,7 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     }
 
     msg->sms.time = time(NULL);
+    msg->sms.sms_type = mt_push;
 
     return msg;
 
