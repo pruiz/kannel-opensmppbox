@@ -399,16 +399,20 @@ static Msg *read_from_box(Connection *conn, Boxc *boxconn)
     Msg *msg;
 
     pack = NULL;
-    switch (read_from_bearerbox_real(conn, &msg, INFINITE_TIME)) {
-    case -1:
-	// connection to bearerbox lost
-	break;
-    case  0:
-	// all is well
-	break;
-    case  1:
-	// timeout
-	break;
+    while (boxconn->alive) {
+	switch (read_from_bearerbox_real(conn, &msg, 1.0)) {
+	case -1:
+	    /* connection to bearerbox lost */
+	    return NULL;
+	    break;
+	case  0:
+	    /* all is well */
+	    return msg;
+	    break;
+	case  1:
+	    /* timeout */
+	    break;
+	}
     }
 
     return msg;
@@ -1608,7 +1612,7 @@ static void boxc_destroy(Boxc *boxc)
     if (boxc->smpp_connection)
 	    conn_destroy(boxc->smpp_connection);
     if (boxc->bearerbox_connection)
-	    close_connection_to_bearerbox_real(boxc->bearerbox_connection);
+	    conn_destroy(boxc->bearerbox_connection);
     if (boxc->boxc_id)
 	    octstr_destroy(boxc->boxc_id);
     if (boxc->alt_charset)
@@ -1732,7 +1736,7 @@ static void bearerbox_to_smpp(void *arg)
 
 	msg = read_from_box(box->bearerbox_connection, box);
         if (msg == NULL) {
-	    if (conn_eof(box->bearerbox_connection)) {
+	    if ((!box->alive) || conn_eof(box->bearerbox_connection)) {
             	/* tell smppbox to die */
 	    	/* the client closes the connection, after that die in receiver */
 	    	box->alive = 0;
@@ -1914,7 +1918,6 @@ static void run_smppbox(void *arg)
 	    boxc_destroy(newconn);
 	    return;
     }
-    /* identify_to_bearerbox(newconn); */
 
     gwlist_append(all_boxes, newconn);
 
@@ -1949,6 +1952,7 @@ static void wait_for_connections(int fd, void (*function) (void *arg),
     
     while(smppbox_status == SMPP_RUNNING) {
 
+            ret = gwthread_pollfd(fd, POLLIN, 1.0);
 	    if (smppbox_status == SMPP_SHUTDOWN) {
 	        if (ret == -1 || !timeout)
                     break;
@@ -1956,7 +1960,6 @@ static void wait_for_connections(int fd, void (*function) (void *arg),
                     timeout--;
 	    }
 
-            ret = gwthread_pollfd(fd, POLLIN, 1.0);
 	    if (ret > 0) {
 	        gwthread_create(function, (void *)fd);
 	        gwthread_sleep(1.0);

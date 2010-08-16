@@ -1,3 +1,7 @@
+2010/08/16
+    Fixed ghost connections bug, where disconnected smppusers kept
+    being visible as connected in bearerbox status page.
+
 2010/08/11
     Filled in msg->sms.sms_type that was incorrectly left undefined.
     Thanks to Tomasz Konopka for reporting.
