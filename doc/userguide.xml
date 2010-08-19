@@ -223,12 +223,26 @@
       SMPP Users are defined in a flat text file, which is parsed at client
       connection (binding) time. This means that users can be added, changed or
       removed without restarting open smppbox. The file can be edited by any plain-text
-      file editor.
+      file editor. Also it is possible to compile open smppbox with Unix PAM support
+      (pluggable authentication modules). See the corresponding options in the configuration
+      file.
     </para>
 
     <para>
       It is possible to restrict ip addresses from which can be bound (connected)
       per user. See the section on configuring open smppbox below.
+    </para>
+
+    <para>
+      Special efforts have been made to make open smppbox v3.4 compatible by means of TLV
+      (tagged length value) parameters. These parameters can be addressed via the meta-data
+      construction in Kannel. A special example of this: One can conditionally enable transmission
+      of short messages as a whole with length exceeding 140 octets, based on a meta-tag
+      "use_message_payload" in "smpp" group. In case this tag has been set and its value is not zero,
+      open smppbox will attempt to use the "message_payload" TLV instead of splitting the message
+      into multiple shorter ones with UDH-concatenation bit set. Note that this mechanism only
+      works for ESME's that declare support for SMPP versions 3.4 or greater. A simple usage example:
+      <ulink url="">http://localhost:13013/cgi-bin/sendsms?...&amp;meta-data=%3Fsmpp%3Fuse_message_payload%3D1</ulink>.
     </para>
   </sect1>
 
@@ -862,23 +876,23 @@ smpp-logins = /etc/smppbox/clients
         variable defines all users that are able to bind as ESME to open smppbox.
         The first three tokens of this file are the username, password and
         foreign system-type that form the credentials on which the bind-
-        method of the ESME are being matched with. The last token is optional
-        and defines a source ip address to restrict logins to.
+        method of the ESME are being matched with. The last token and defines a
+	source ip address to restrict logins to.
         An example with two example logins:
 
         <programlisting>
-          goodclient    secret  remote
+          goodclient    secret  remote	*.*.*.*
           franchise ourpassword localbox  127.0.0.1;213.110.120.33
         </programlisting>        
       </para>
       <para>
         The first line defines a username ("goodclient"), a password ("secret")
-        and an smsbox-id ("remote"). The second line defines also a username
+        and an smsbox-id ("remote"). People can log into this account, originating
+	from any ip address.i The second line defines also a username
         ("franchise"), password("ourpassword") and an smsbox-id ("localbox"),
         but besides that there is a restriction on that user. It can only bind
         from the ip addresses 127.0.0.1 and 213.110.120.33.
-        If the ip address is omitted, then everybody is allowed to connect.
-        If the ip address is given, then only that ip address is allowed to connect.
+        If ip address(es) is/are given, then only those ip addresses are allowed to connect.
         It works exactly like connect-allow-ip and connect-deny-ip in Kannel.conf.
         In that case, connect-deny-ip has a mask of "*.*.*.*".
       </para>
@@ -906,13 +920,13 @@ smpp-logins = /etc/smppbox/clients
 	    This chapter explains where to find help with problems related to the gateway, and the preferred procedure for reporting bugs and sending corrections to them.
 	</para>
 	<para>
-	    The Kannel development mailing list is devel@kannel.org. To subscribe, send mail to devel-subscribe@kannel.org. This is currently the best location for asking help and reporting bugs. Please include configuration file and version number.
+	    The Kannel development mailing list is users@kannel.org. To subscribe, send mail to users-subscribe@kannel.org. This is currently the best location for asking help and reporting bugs. Please include configuration file and version number.
 	</para>
 </chapter>
 <chapter id="upgrading-notes">
 	<title>Upgrading notes</title>
 	<para>
-	    There are currently no upgrading notes.
+	    See the file <filename>UPGRADE</filename> in the source tree.
 	</para>
 </chapter>
 </book>

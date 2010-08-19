@@ -595,7 +595,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 {
     SMPP_PDU *pdu, *pdu2;
     List *pdulist = gwlist_create(), *parts;
-    int validity, dlrtype, catenate;
+    int dlrtype, catenate;
     int dlr_state = 7; /* UNKNOWN */
     Msg *dlr;
     char *text, *tmps, err[4] = { '0', '0', '0', '\0' };
@@ -603,7 +603,6 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     struct tm tm_tmp;
     Octstr *msgid, *msgid2, *dlr_status, *dlvrd;
     /* split variables */
-    List *list;
     unsigned long msg_sequence, msg_count;
     unsigned long submit_date;
     int max_msgs;
@@ -765,6 +764,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		tmps = strstr(tmps, " ");
 		text = tmps ? tmps + (1 * sizeof(char)) : "";
 	}
+
 	tmps = strstr(text, "text:");
 	if (tmps != NULL) {
 		text = tmps + (5 * sizeof(char));
@@ -818,7 +818,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		if (box->version > 0x33) {
 			pdu->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid);
 			pdu->u.deliver_sm.message_state = dlr_state;
-			pdu->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");			
+			pdu->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
 		}
 		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%s text:%12s", msgid, dlvrd, submit_date_c_str, done_date_c_str, dlr_status, err, text);
 		gwlist_append(pdulist, pdu);
@@ -876,25 +876,6 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 
     pdu->u.deliver_sm.sm_length = octstr_len(pdu->u.deliver_sm.short_message);
 
-    /*
-     * check for validity and defered settings
-     * were message value has higher priiority then smsc config group value
-     */
-    validity = msg->sms.validity >= 0 ? msg->sms.validity : box->validityperiod;
-    if (validity >= 0) {
-        struct tm tm = gw_gmtime(time(NULL) + validity * 60);
-        pdu->u.deliver_sm.validity_period = octstr_format("%02d%02d%02d%02d%02d%02d000+",
-                tm.tm_year % 100, tm.tm_mon + 1, tm.tm_mday,
-                tm.tm_hour, tm.tm_min, tm.tm_sec);
-    }
-
-    if (msg->sms.deferred >= 0) {
-        struct tm tm = gw_gmtime(time(NULL) + msg->sms.deferred * 60);
-        pdu->u.deliver_sm.schedule_delivery_time = octstr_format("%02d%02d%02d%02d%02d%02d000+",
-                tm.tm_year % 100, tm.tm_mon + 1, tm.tm_mday,
-                tm.tm_hour, tm.tm_min, tm.tm_sec);
-    }
-
     /* set priority */
     if (msg->sms.priority >= 0 && msg->sms.priority <= 3)
         pdu->u.deliver_sm.priority_flag = msg->sms.priority;
@@ -918,43 +899,82 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     else
     	msg_sequence = 0;
 
-    list = sms_split(msg, header, footer, suffix, split_chars, catenate,
+    /* split sms */
+    parts = sms_split(msg, header, footer, suffix, split_chars, catenate,
     	    	     msg_sequence, max_msgs, sms_max_length);
-    msg_count = gwlist_len(list);
+    msg_count = gwlist_len(parts);
 
-    debug("SMPP", 0, "message length %ld, sending %ld messages",
-          octstr_len(msg->sms.msgdata), msg_count);
+    if ((msg_count > 1) && (box->version > 0x33)) {
+        Octstr *use_message_payload_meta;
+        long use_message_payload;
 
-    while((msg2 = gwlist_extract_first(list)) != NULL) {
-	pdu2 = smpp_pdu_create(deliver_sm, counter_increase(box->smpp_pdu_counter));
-	pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
-	pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.source_addr_npi;
-	pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
-	pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
-	pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
-	pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
-	pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
-	pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
-	pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
-	if (msg_count > 0) {
-		if (octstr_len(msg2->sms.udhdata) > 0) {
-		    pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class | ESM_CLASS_DELIVER_UDH_INDICATOR;
-		    pdu2->u.deliver_sm.short_message = octstr_cat(msg2->sms.udhdata, msg2->sms.msgdata);
-		}
-		else {
-		    pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
-		}
-	}
-	else {
-		pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
-	}
-	if (box->version > 0x33) {
-		pdu2->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
-	}
-	gwlist_append(pdulist, pdu2);
-	msg_destroy(msg2);
+        use_message_payload_meta = meta_data_get_value(msg->sms.meta_data, "smpp", octstr_imm("use_message_payload"));
+        use_message_payload = strtol(octstr_get_cstr(use_message_payload_meta), 0, 0);
+
+        if (use_message_payload) {
+            /* copy short message data to message_payload TLV */
+            pdu->u.deliver_sm.message_payload = octstr_duplicate(pdu->u.deliver_sm.short_message);
+            octstr_destroy(pdu->u.deliver_sm.short_message);
+            pdu->u.deliver_sm.short_message = NULL;
+            pdu->u.deliver_sm.sm_length = 0;
+
+            /* pass the message as a single pdu */
+            msg_count = 1;
+        }
+		
+        octstr_destroy(use_message_payload_meta);
     }
-    smpp_pdu_destroy(pdu);
+
+    if (msg_count == 1) {
+        /* don't create split_parts of sms fit into one */
+        gwlist_destroy(parts, msg_destroy_item);
+        parts = NULL;
+    }
+
+    debug("SMPP", 0, "message length %ld, sending %ld message%s",
+        octstr_len(msg->sms.msgdata), msg_count, msg_count == 1 ? "" : "s");
+
+    if (parts) {
+        while((msg2 = gwlist_extract_first(parts)) != NULL) {
+	        pdu2 = smpp_pdu_create(deliver_sm, counter_increase(box->smpp_pdu_counter));
+	        pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
+	        pdu2->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.source_addr_npi;
+	        pdu2->u.deliver_sm.dest_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
+	        pdu2->u.deliver_sm.dest_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+	        pdu2->u.deliver_sm.data_coding = pdu->u.deliver_sm.data_coding;
+	        pdu2->u.deliver_sm.protocol_id = pdu->u.deliver_sm.protocol_id;
+	        pdu2->u.deliver_sm.source_addr = octstr_duplicate(pdu->u.deliver_sm.source_addr);
+	        pdu2->u.deliver_sm.destination_addr = octstr_duplicate(pdu->u.deliver_sm.destination_addr);
+	        pdu2->u.deliver_sm.service_type = octstr_duplicate(pdu->u.deliver_sm.service_type);
+
+	        /* the following condition is currently always true */
+	        /* uncomment in case we're doing a SAR-split instead */
+	        if (/*octstr_len(msg2->sms.udhdata) > 0*/1) {
+	            pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class | ESM_CLASS_DELIVER_UDH_INDICATOR;
+	            pdu2->u.deliver_sm.short_message = octstr_cat(msg2->sms.udhdata, msg2->sms.msgdata);
+	        }
+	        else {
+	            pdu2->u.deliver_sm.short_message = octstr_duplicate(msg2->sms.msgdata);
+	        }
+
+	        if (box->version > 0x33) {
+	            pdu2->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
+	        }
+
+	        gwlist_append(pdulist, pdu2);
+	        msg_destroy(msg2);
+        }
+		
+        smpp_pdu_destroy(pdu);	
+    }
+    else {
+        if (box->version > 0x33) {
+            pdu->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
+        }
+
+        gwlist_append(pdulist, pdu);
+    }
+
     return pdulist;
 }
 
@@ -1113,12 +1133,12 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     msg->sms.priority = pdu->u.submit_sm.priority_flag;
 
     /* ask for the delivery reports if needed */
-    switch (pdu->u.submit_sm.registered_delivery) {
+    switch (pdu->u.submit_sm.registered_delivery & 0x03) {
     case 1:
-	msg->sms.dlr_mask = (DLR_SUCCESS | DLR_FAIL);
+	msg->sms.dlr_mask = (DLR_SUCCESS | DLR_FAIL | DLR_SMSC_FAIL);
 	break;
     case 2:
-	msg->sms.dlr_mask = (DLR_FAIL);
+	msg->sms.dlr_mask = (DLR_FAIL | DLR_SMSC_FAIL);
 	break;
     default:
 	msg->sms.dlr_mask = 0;
@@ -1583,8 +1603,8 @@ static Boxc *boxc_create(int fd, Octstr *ip, int ssl)
     boxc->alt_charset = NULL; /* todo: get from config */
     boxc->version = 0x33; /* default value, set upon receiving a bind */
     boxc->route_to_smsc = route_to_smsc ? octstr_duplicate(route_to_smsc) : NULL;
-    boxc->msg_acks = dict_create(10, smpp_pdu_destroy_item);
-    boxc->deliver_acks = dict_create(10, msg_destroy_item);
+    boxc->msg_acks = dict_create(256, smpp_pdu_destroy_item);
+    boxc->deliver_acks = dict_create(256, msg_destroy_item);
 
     boxc->service_type = NULL;
 
@@ -1595,7 +1615,7 @@ static Boxc *boxc_create(int fd, Octstr *ip, int ssl)
     boxc->dest_addr_npi = smpp_dest_addr_npi;
 
     boxc->alt_dcs = 0;
-    boxc->validityperiod = 0;
+    boxc->validityperiod = -1;	
     boxc->priority = 0;
     boxc->mo_recode = 0;
 
