@@ -282,7 +282,7 @@ int check_login(Boxc *boxc, Octstr *system_id, Octstr *password, Octstr *system_
 			success = (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0);
 		}
 		else {
-			success = (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0 && strcmp(octstr_get_cstr(system_type), systemtype));
+			success = (strcmp(octstr_get_cstr(system_id), systemid) == 0 && strcmp(octstr_get_cstr(password), passw) == 0 && strcmp(octstr_get_cstr(system_type), systemtype) == 0);
 		}
 		if (success) {
 			if (strcmp(allowed_ips, "") != 0)  {
@@ -1531,6 +1531,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 				uuid_unparse(msg2->sms.id, id);
 				msgid = octstr_create(id);
 				dict_put(box->msg_acks, msgid, resp);
+				octstr_destroy(msgid);
 				resp = NULL;
 				send_msg(box->bearerbox_connection, box, msg2);
 				if (parts_list) {
@@ -1645,6 +1646,8 @@ static void boxc_destroy(Boxc *boxc)
 	    octstr_destroy(boxc->client_ip);
     dict_destroy(boxc->msg_acks);
     dict_destroy(boxc->deliver_acks);
+    if (boxc->boxc_id)
+	octstr_destroy(boxc->boxc_id);
     gw_free(boxc);
 }
 

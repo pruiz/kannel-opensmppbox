@@ -1,3 +1,6 @@
+2010/0822
+    Fixed bug reported by boooch@gmail.com as where authentication including system_type would always fail.
+
 2010/08/19
     1) add support for message_payload TLV for deliver_sm packets. This TLV is used in case a smpp meta-flag "use_message_payload" is set.
     2) brings smppbox in conformity with SMPP v3.4 in regarding shedule_delivery_time and validiy_period fields in deliver_sm packets.
