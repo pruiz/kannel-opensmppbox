@@ -1646,8 +1646,6 @@ static void boxc_destroy(Boxc *boxc)
 	    octstr_destroy(boxc->client_ip);
     dict_destroy(boxc->msg_acks);
     dict_destroy(boxc->deliver_acks);
-    if (boxc->boxc_id)
-	octstr_destroy(boxc->boxc_id);
     gw_free(boxc);
 }
 
