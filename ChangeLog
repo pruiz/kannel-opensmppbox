@@ -1,4 +1,9 @@
-2010/0822
+2010/08/23
+    1. Respects softfail from bearerbox (ack_failed_tmp).
+    2. Propagates message priority in submit_sm further to bearerbox in Msg struct.
+    Thanks to Victor Luchitz for reporting.
+
+2010/08/22
     Fixed bug reported by boooch@gmail.com as where authentication including system_type would always fail.
 
 2010/08/19

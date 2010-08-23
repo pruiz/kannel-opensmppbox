@@ -1022,6 +1022,11 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
         goto error;
     }
 
+    /* copy priority_flag into msg */
+    if (pdu->u.submit_sm.priority_flag >= 0 && pdu->u.submit_sm.priority_flag <= 3) {
+	msg->sms.priority = pdu->u.submit_sm.priority_flag;
+    }
+
     /* Same reset of destination number as for source */
     ton = pdu->u.submit_sm.dest_addr_ton;
     npi = pdu->u.submit_sm.dest_addr_npi;
@@ -1748,7 +1753,7 @@ static void bearerbox_to_smpp(void *arg)
     Boxc *box = arg;
     SMPP_PDU *pdu;
     List *pdulist;
-    int dreport;
+    int dreport, errcode;
     Boxc *receiver_box;
     char id[UUID_STR_LEN + 1];
     Octstr *msgid;
@@ -1784,6 +1789,7 @@ static void bearerbox_to_smpp(void *arg)
 	    uuid_unparse(msg->ack.id, id);
 	    msgid = octstr_create(id);
 	    pdu = dict_get(box->msg_acks, msgid);
+	    errcode = SMPP_ESME_RMSGQFUL; /* in case we get ack_failed_tmp */
 	    if (pdu) {
 		switch (msg->ack.nack) {
 		case ack_buffered:
@@ -1791,17 +1797,19 @@ static void bearerbox_to_smpp(void *arg)
 			/* we can send the submit_sm_resp as-is */
 			break;
 		case ack_failed:
+			errcode = SMPP_ESME_RSUBMITFAIL;
+			/* no break */
 		case ack_failed_tmp:
 			switch (pdu->type) {
 			case submit_sm_resp:
 				octstr_destroy(pdu->u.submit_sm_resp.message_id);
 				pdu->u.submit_sm_resp.message_id = NULL;
-				pdu->u.submit_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
+				pdu->u.submit_sm_resp.command_status = errcode;
 				break;
 			case data_sm_resp:
 				octstr_destroy(pdu->u.data_sm_resp.message_id);
 				pdu->u.data_sm_resp.message_id = NULL;
-				pdu->u.data_sm_resp.command_status = SMPP_ESME_RSUBMITFAIL;
+				pdu->u.data_sm_resp.command_status = errcode;
 				break;
 			default:
 				debug("smppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
