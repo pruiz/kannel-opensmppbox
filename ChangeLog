@@ -1,5 +1,6 @@
 2010/09/15
-    Sending negative ack upon receiving invalid MO/DLR.
+    Sending negative ack upon receiving invalid MO/DLR so messages won't stay in bearerbox store.
+    Patch by Victor Luchitz.
 
 2010/08/23
     1. Respects softfail from bearerbox (ack_failed_tmp).
