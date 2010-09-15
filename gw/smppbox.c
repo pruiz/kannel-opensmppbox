@@ -1921,6 +1921,12 @@ static void bearerbox_to_smpp(void *arg)
 				octstr_destroy(msgid);
 			gwlist_destroy(pdulist, NULL);
 		}
+		else {
+			/* Send NACK to bearerbox, otherwise message remains in store file. */
+			warning(0, "msg_to_pdu failed, sending negative ack");
+			mack->ack.nack = ack_failed;
+			send_msg(box->bearerbox_connection, box, mack);
+		}		
 	}
         msg_destroy(msg);
     }
