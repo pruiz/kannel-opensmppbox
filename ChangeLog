@@ -1,4 +1,8 @@
 2010-10-06  Stipe Tolj  <stolj at kannel.org>
+    * autotools/*, gw/Makefile.in, aclocal.m4, configure, Makefile.in: new 
+      configure file after bootstrapping for distribution.
+      
+2010-10-06  Stipe Tolj  <stolj at kannel.org>
     * */*: changing the add-on module name to OpenSMPPBox, along with all 
       references in the output and the configuration file aspects.
     
