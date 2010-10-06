@@ -1,11 +1,11 @@
-man1pages = gw/smppbox.1
-man5pages = gw/smppbox.5
+man1pages = gw/opensmppbox.1
+man5pages = gw/opensmppbox.5
 docsrcs = $(wildcard grep -l '<!DOCTYPE ' doc/*.xml)
 docs = $(docsrcs:.xml=.html) $(docsrcs:.xml=.rtf) $(docsrcs:.xml=.ps) $(docsrcs:.xml=.pdf)
-rpmtemp = /tmp/smppbox-rpm
+rpmtemp = /tmp/opensmppbox-rpm
 DOCSTARGET=@DOCSTARGET@
 DOCDRAFTS=@DOCDRAFTS@
-RPMPKG=smppbox-@PACKAGE_VERSION@
+RPMPKG=opensmppbox-@PACKAGE_VERSION@
 
 pssrcs = $(wildcard doc/*.png)
 ps = $(pssrcs:.png=.ps)  

@@ -1,7 +1,7 @@
 /* ====================================================================
  * The Kannel Software License, Version 1.0
  *
- * Copyright (c) 2001-2004 Kannel Group
+ * Copyright (c) 2001-2010 Kannel Group
  * Copyright (c) 1998-2001 WapIT Ltd.
  * All rights reserved.
  *
@@ -60,7 +60,7 @@
  */
 
 /*
- * smppbox.c - main program of the smppbox
+ * opensmppbox.c - main program of the opensmppbox
  */
 
 #include <errno.h>
@@ -148,7 +148,7 @@ typedef struct _boxc {
     Dict	*sent;
     Semaphore	*pending;
     volatile sig_atomic_t alive;
-    Octstr	*boxc_id; /* identifies the connected smppbox instance */
+    Octstr	*boxc_id; /* identifies the connected opensmppbox instance */
     Octstr	*sms_service;
     Octstr	*route_to_smsc;
     Dict	*msg_acks;
@@ -257,7 +257,7 @@ static int authenticate(const char *acl, const char *login, const char *passwd)
 	return 0;
     }
     pam_end(pamh, PAM_SUCCESS);
-    info(0, "smppbox login by <%s>", login);
+    info(0, "opensmppbox login by <%s>", login);
     return 1;
 }
 
@@ -309,7 +309,7 @@ valid_login:
 	for (box = 0; box < gwlist_len(all_boxes); box++) {
 		thisbox = (Boxc *)gwlist_get(all_boxes, box);
 		if (octstr_compare(system_type, thisbox->boxc_id) == 0 && (thisbox->login_type == SMPP_LOGIN_TRANSCEIVER || (thisbox->login_type == login_type))) {
-			debug("bb.sms.smpp", 0, "smppbox[%s]: Multiple login: disconnect.",
+			debug("bb.sms.smpp", 0, "opensmppbox[%s]: Multiple login: disconnect.",
 				octstr_get_cstr(thisbox->boxc_id));
 			thisbox->alive = 0;
 #ifdef HAVE_SHUTDOWN_CONNECTION
@@ -335,7 +335,7 @@ valid_login:
 /** This version does dump. */
 #define dump_pdu(msg, id, pdu)                  \
     do {                                        \
-        debug("smppbox", 0, "SMPP[%s]: %s", \
+        debug("opensmppbox", 0, "SMPP[%s]: %s", \
             octstr_get_cstr(id), msg);          \
         smpp_pdu_dump(pdu);                     \
     } while(0)
@@ -376,8 +376,8 @@ static long outstanding_requests(void)
 }
 
 /*
- * Identify ourself to bearerbox for smppbox-specific routing inside bearerbox.
- * Do this even while no smppbox-id is given to unlock the sender thread in
+ * Identify ourself to bearerbox for opensmppbox-specific routing inside bearerbox.
+ * Do this even while no opensmppbox-id is given to unlock the sender thread in
  * bearerbox.
  */
 static void identify_to_bearerbox(Boxc *conn)
@@ -446,7 +446,7 @@ Msg *catenate_msg(List *list, int total)
 		max++;
 	}
 	/* fail */
-	debug("smppbox", 0, "re-assembling message failed.");
+	debug("opensmppbox", 0, "re-assembling message failed.");
 	msg_destroy(ret);
 	return NULL;
 }
@@ -558,7 +558,7 @@ static int read_pdu(Boxc *box, Connection *conn, long *len, SMPP_PDU **pdu)
     if (*len == 0) { 
         *len = smpp_pdu_read_len(conn); 
         if (*len == -1) { 
-            error(0, "smppbox[%s]: Server sent garbage, ignored.",
+            error(0, "opensmppbox[%s]: Server sent garbage, ignored.",
                   octstr_get_cstr(box->boxc_id));
             return -1; 
         } else if (*len == 0) { 
@@ -578,9 +578,9 @@ static int read_pdu(Boxc *box, Connection *conn, long *len, SMPP_PDU **pdu)
      
     *pdu = smpp_pdu_unpack(box->boxc_id, os); 
     if (*pdu == NULL) {
-        error(0, "smppbox[%s]: PDU unpacking failed.",
+        error(0, "opensmppbox[%s]: PDU unpacking failed.",
               octstr_get_cstr(box->boxc_id));
-        debug("bb.sms.smpp", 0, "smppbox[%s]: Failed PDU omitted.",
+        debug("bb.sms.smpp", 0, "opensmppbox[%s]: Failed PDU omitted.",
               octstr_get_cstr(box->boxc_id));
         /* octstr_dump(os, 0); */
         octstr_destroy(os);
@@ -791,7 +791,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	octstr_destroy(gwlist_extract_first(parts));
 	if (gwlist_len(parts) > 0) {
 		while ((msgid2 = gwlist_extract_first(parts)) != NULL) {
-			debug("smppbox", 0, "DLR for multipart message: sending %s.", octstr_get_cstr(msgid2));
+			debug("opensmppbox", 0, "DLR for multipart message: sending %s.", octstr_get_cstr(msgid2));
 			pdu2 = smpp_pdu_create(deliver_sm, counter_increase(box->smpp_pdu_counter));
 			pdu2->u.deliver_sm.esm_class = pdu->u.deliver_sm.esm_class;
 			pdu2->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.source_addr_ton;
@@ -1346,7 +1346,7 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 		/* We collect long messages as one and send them to bearerbox as a whole, so they can be sent
 		   from the same smsc. */
 		(*msg_to_send) = 0;
-		debug("smppbox", 0, "assemble multi-part message.");
+		debug("opensmppbox", 0, "assemble multi-part message.");
 		reference = octstr_get_char(msg->sms.udhdata, 3);
 		total = octstr_get_char(msg->sms.udhdata, 4);
 		key = octstr_format("%S-%i", msg->sms.receiver, reference);
@@ -1355,9 +1355,9 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 			(*parts_list) = gwlist_create();
 			dict_put(list_dict, key, (*parts_list));
 		}
-		debug("smppbox", 0, "received %d of %d.", gwlist_len((*parts_list)) + 1, total);
+		debug("opensmppbox", 0, "received %d of %d.", gwlist_len((*parts_list)) + 1, total);
 		if ((gwlist_len((*parts_list)) + 1) == total) {
-			debug("smppbox", 0, "received all parts of multi-part message.");
+			debug("opensmppbox", 0, "received all parts of multi-part message.");
 			gwlist_append((*parts_list), msg);
 			/* assemble message */
 			(*msg2) = catenate_msg((*parts_list), total);
@@ -1365,13 +1365,13 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 			octstr_destroy(key);
 			if (NULL == (*msg2)) {
 				/* we could not assemble an appropiate message */
-				debug("smppbox", 0, "Invalid multi-part message.");
+				debug("opensmppbox", 0, "Invalid multi-part message.");
 				
 			}
 			else {
 				(*msg2)->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
 				(*msg2)->sms.boxc_id = octstr_duplicate(box->boxc_id);
-				debug("smppbox", 0, "multi-part message, length: %d.", octstr_len((*msg2)->sms.msgdata));
+				debug("opensmppbox", 0, "multi-part message, length: %d.", octstr_len((*msg2)->sms.msgdata));
 				(*msg_to_send) = 1;
 			}
 		}
@@ -1763,7 +1763,7 @@ static void bearerbox_to_smpp(void *arg)
 	msg = read_from_box(box->bearerbox_connection, box);
         if (msg == NULL) {
 	    if ((!box->alive) || conn_eof(box->bearerbox_connection)) {
-            	/* tell smppbox to die */
+            	/* tell opensmppbox to die */
 	    	/* the client closes the connection, after that die in receiver */
 	    	box->alive = 0;
 	    }
@@ -1781,7 +1781,7 @@ static void bearerbox_to_smpp(void *arg)
 	}
         if (msg_type(msg) == heartbeat) {
 	    // todo
-            debug("smppbox", 0, "bearerbox_to_smpp: catch an heartbeat - we are alive");
+            debug("opensmppbox", 0, "bearerbox_to_smpp: catch an heartbeat - we are alive");
             msg_destroy(msg);
             continue;
         }
@@ -1812,19 +1812,19 @@ static void bearerbox_to_smpp(void *arg)
 				pdu->u.data_sm_resp.command_status = errcode;
 				break;
 			default:
-				debug("smppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
+				debug("opensmppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
 				break;
 			}
 			break;
 		default:
-			debug("smppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
+			debug("opensmppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
 			break;
 		}
 		send_pdu(box->smpp_connection, box->boxc_id, pdu);
 		dict_put(box->msg_acks, msgid, NULL); /* also destroys item */
 	    }
 	    else {
-		debug("smppbox", 0, "Ack to unknown message: %s.", id);
+		debug("opensmppbox", 0, "Ack to unknown message: %s.", id);
 	    }
 	    octstr_destroy(msgid);
 	}
@@ -1949,7 +1949,7 @@ static void run_smppbox(void *arg)
     newconn->bearerbox_connection = connect_to_bearerbox_real(bearerbox_host, bearerbox_port, bearerbox_port_ssl, NULL /* bb_our_host */);
 	/* XXX add our_host if required */
     if (newconn->bearerbox_connection == NULL) {
-	    error(0, "smppbox: Failed to connect to bearerbox." );
+	    error(0, "opensmppbox: Failed to connect to bearerbox." );
 	    boxc_destroy(newconn);
 	    return;
     }
@@ -1960,7 +1960,7 @@ static void run_smppbox(void *arg)
     /* we dont do heartbeats for now */
     if (0 > heartbeat_start(write_to_bearerboxes, DEFAULT_HEARTBEAT,
 				       outstanding_requests)) {
-        info(0, "SMPPBox: Could not start heartbeat.");
+        info(0, "OpenSMPPBox: Could not start heartbeat.");
     }
 #endif
 
@@ -2017,7 +2017,7 @@ static void smppboxc_run(void *arg)
     	/* XXX add interface_name if required */
 
     if (fd < 0) {
-	    panic(0, "Could not open smppbox port %d", port);
+	    panic(0, "Could not open opensmppbox port %d", port);
     }
 
     /*
@@ -2125,12 +2125,12 @@ static void init_smppbox(Cfg *cfg)
 
 	/*
 	 * first we take the port number in bearerbox and other values from the
-	 * smppbox group in configuration file
+	 * opensmppbox group in configuration file
 	*/
 
-	grp = cfg_get_single_group(cfg, octstr_imm("smppbox"));
+	grp = cfg_get_single_group(cfg, octstr_imm("opensmppbox"));
 	if (grp == NULL)
-		panic(0, "No 'smppbox' group in configuration");
+		panic(0, "No 'opensmppbox' group in configuration");
 
 	bearerbox_host = cfg_get(grp, octstr_imm("bearerbox-host"));
 	if (!bearerbox_host) {
@@ -2145,7 +2145,7 @@ static void init_smppbox(Cfg *cfg)
 #endif
 #endif 
 
-	smppbox_id = cfg_get(grp, octstr_imm("smppbox-id"));
+	smppbox_id = cfg_get(grp, octstr_imm("opensmppbox-id"));
 	our_system_id = cfg_get(grp, octstr_imm("our-system-id"));
 	route_to_smsc = cfg_get(grp, octstr_imm("route-to-smsc"));
 	if (our_system_id == NULL) {
@@ -2157,7 +2157,7 @@ static void init_smppbox(Cfg *cfg)
 
 	cfg_get_integer(&lvl, grp, octstr_imm("log-level"));
 
-	if (cfg_get_integer(&smppbox_port, grp, octstr_imm("smppbox-port")) == -1)
+	if (cfg_get_integer(&smppbox_port, grp, octstr_imm("opensmppbox-port")) == -1)
 		smppbox_port = 2345;
 
 	smpp_logins = cfg_get(grp, octstr_imm("smpp-logins"));
@@ -2249,7 +2249,7 @@ static int smppbox_is_allowed_in_group(Octstr *group, Octstr *variable)
         fields \
         return 0; \
     }
-    #include "smppbox-cfg.def"
+    #include "opensmppbox-cfg.def"
 
     return 0;
 }
@@ -2267,7 +2267,7 @@ static int smppbox_is_single_group(Octstr *query)
     #define MULTI_GROUP(name, fields) \
         if (octstr_compare(octstr_imm(#name), query) == 0) \
         return 0;
-    #include "smppbox-cfg.def"
+    #include "opensmppbox-cfg.def"
     return 0;
 }
 
@@ -2299,7 +2299,7 @@ int main(int argc, char **argv)
 
 	octstr_destroy(filename);
 
-	version = octstr_format("smppbox version %s gwlib", GW_VERSION);
+	version = octstr_format("opensmppbox version %s gwlib", GW_VERSION);
 	report_versions(octstr_get_cstr(version));
 	octstr_destroy(version);
 

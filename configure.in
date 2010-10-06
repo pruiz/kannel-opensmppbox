@@ -54,7 +54,7 @@ dnl  * Portions of this software are based upon software originally written at
 dnl  * WapIT Ltd., Helsinki, Finland for the Kannel project.  
 dnl  */ 
 
-dnl Smppbox - Open Source Kannel Extension for store messages
+dnl OpenSMPPBox - Open Source Kannel Extension for store messages
 dnl
 dnl Rene Kluwen <rene dot kluwen at chimit dot nl>
 dnl 
@@ -67,8 +67,8 @@ dnl
 AC_PREREQ(2.5)
 
 dnl Initialization
-AC_INIT([smppbox],[svn],[devel@kannel.org])
-AC_CONFIG_SRCDIR([gw/smppbox.c])
+AC_INIT([opensmppbox],[svn],[devel@kannel.org])
+AC_CONFIG_SRCDIR([gw/opensmppbox.c])
 AC_CONFIG_AUX_DIR(autotools)
 AC_SUBST(SHELL)
 
@@ -85,12 +85,12 @@ if test "x$VERSION" = "xsvn"; then
   AC_MSG_RESULT([$SVN_REVISION])
   VERSION="$VERSION-r$SVN_REVISION"
 fi
-AC_DEFINE_UNQUOTED(GW_NAME, "Smppbox", [ GW_NAME ])
+AC_DEFINE_UNQUOTED(GW_NAME, "OpenSMPPBox", [ GW_NAME ])
 AC_DEFINE_UNQUOTED(GW_VERSION, "$VERSION", [ GW_VERSION ])
 AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [ VERSION ])
 AC_SUBST(GW_VERSION)
 AC_SUBST(VERSION)
-AC_CONFIG_SECTION([Configuring for smppbox version $VERSION])
+AC_CONFIG_SECTION([Configuring for opensmppbox version $VERSION])
 
 dnl Checks for programs.
 dnl AC_PROG_CC
@@ -587,6 +587,6 @@ AC_SUBST(rpm_suffix, "sdb", [RPM Suffix])
 AC_SUBST(rpm_requires, "libsdb-devel >= 0.5", [RPM Requires])
 ])
 
-AC_CONFIG_FILES([Makefile gw/Makefile rpm/smppbox.spec])
+AC_CONFIG_FILES([Makefile gw/Makefile rpm/opensmppbox.spec])
 
 AC_OUTPUT

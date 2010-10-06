@@ -14,7 +14,7 @@
 <book>
 
 <bookinfo>
-	<title>Open smppbox &version; User's Guide</title>
+	<title>OpenSMPPBox &version; User's Guide</title>
 	<subtitle>Open Source SMPP proxy</subtitle>
 
 <authorgroup>
@@ -22,7 +22,7 @@
 		<firstname>Rene</firstname>
 		<surname>Kluwen</surname>
 		<affiliation>
-			<jobtitle>Open smppbox author</jobtitle>
+			<jobtitle>OpenSMPPBox author</jobtitle>
 			<orgname>Chimit Ltd.</orgname>
 			<address> <email>rene.kluwen@chimit.nl</email>
 			</address>
@@ -54,7 +54,7 @@
 	<abstract>
 		<title>Abstract</title>
 		<para>
-			This document describes how to install and use SMPPBox, the Open
+			This document describes how to install and use OpenSMPPBox, the Open
 			Source SMPP proxy originally developed by Chimit Ltd. and now
 			being developed further by the open source community, namely the
 			Kannel Group.
@@ -74,7 +74,7 @@
 	<title>Introduction</title>
 
 	<para>This chapter introduces SMPP in general terms, and
-		explains the role of SMPPBox in SMS flow, outlining its duties
+		explains the role of OpenSMPPBox in SMS flow, outlining its duties
 		and features.
 	</para>
 
@@ -175,10 +175,10 @@
 	</sect1>
 
 	<sect1>
-		<title>SMPPBox overview</title>
+		<title>OpenSMPPBox overview</title>
 
 		<para>
-			SMPPBox is an opensource SMPP proxy, which forwards GSM SMPP PDUs.
+			OpenSMPPBox is an opensource SMPP proxy, which forwards GSM SMPP PDUs.
 			It is not a pure proxy in the clear sense of the word, since it
 			is not limited to the SMPP protocol. It features an SMPP server port
 			for incoming ESME connections, but the client side uses the more
@@ -188,25 +188,25 @@
 			used for both MT &amp; MO SMS traffic.
 		</para>
 		<figure>
-			<title>SMPPBox Layout </title>
+			<title>OpenSMPPBox Layout </title>
 			<graphic fileref="SMPPBox&figtype;"></graphic>
 		</figure>
 		<para>
-			The ESME connects over SMPP to SMPPBox, thinking that it is an SMSc.
-			Accounts are configured in SMPPBox to allow connections only from
+			The ESME connects over SMPP to OpenSMPPBox, thinking that it is an SMSc.
+			Accounts are configured in OpenSMPPBox to allow connections only from
 			specific clients. The SMS is forwarded to Bearerbox, which routes it
 			to the best available SMSc over a variety of protocols.
 		</para>
 		<para>
 			Meanwhile the SMSc will generate both final and intermediate delivery reports.
-			These are routed back from Bearerbox to SMPPbox, which are then
-			rewritten, as to appear that they originated from SMPPBox. These
+			These are routed back from Bearerbox to OpenSMPPbox, which are then
+			rewritten, as to appear that they originated from OpenSMPPBox. These
 			are finally routed back to the requesting ESME.
 		</para>
 		<para>
-			SMPPbox presents a layer of abstraction to the ESME. The ESME
+			OpenSMPPBox presents a layer of abstraction to the ESME. The ESME
 			doesn't know the real SMScs used for SMS delivery. As far as it
-			is concerned, it is dealing only with a single SMSc, SMPPBox. SMPPbox
+			is concerned, it is dealing only with a single SMSc, OpenSMPPBox. OpenSMPPBox
       works like a black box in between your subscribers and Kannel.
 		</para>
 	</sect1>
@@ -214,7 +214,7 @@
 	<sect1>
 		<title>Features</title>
     <para>
-      SMPPBox provides for compliance to SMPP v3.3, SMPP v3.4 &amp; SMPPv5.0 for
+      OpenSMPPBox provides for compliance to SMPP v3.3, SMPP v3.4 &amp; SMPPv5.0 for
 			MT SMS routing over GSM. Options are limited by the features
 			provided by Bearerbox.
 		</para>
@@ -222,24 +222,24 @@
     <para>
       SMPP Users are defined in a flat text file, which is parsed at client
       connection (binding) time. This means that users can be added, changed or
-      removed without restarting open smppbox. The file can be edited by any plain-text
-      file editor. Also it is possible to compile open smppbox with Unix PAM support
+      removed without restarting opensmppbox. The file can be edited by any plain-text
+      file editor. Also it is possible to compile opensmppbox with Unix PAM support
       (pluggable authentication modules). See the corresponding options in the configuration
       file.
     </para>
 
     <para>
       It is possible to restrict ip addresses from which can be bound (connected)
-      per user. See the section on configuring open smppbox below.
+      per user. See the section on configuring opensmppbox below.
     </para>
 
     <para>
-      Special efforts have been made to make open smppbox v3.4 compatible by means of TLV
+      Special efforts have been made to make opensmppbox v3.4 compatible by means of TLV
       (tagged length value) parameters. These parameters can be addressed via the meta-data
       construction in Kannel. A special example of this: One can conditionally enable transmission
       of short messages as a whole with length exceeding 140 octets, based on a meta-tag
       "use_message_payload" in "smpp" group. In case this tag has been set and its value is not zero,
-      open smppbox will attempt to use the "message_payload" TLV instead of splitting the message
+      opensmppbox will attempt to use the "message_payload" TLV instead of splitting the message
       into multiple shorter ones with UDH-concatenation bit set. Note that this mechanism only
       works for ESME's that declare support for SMPP versions 3.4 or greater. A simple usage example:
       <ulink url="">http://localhost:13013/cgi-bin/sendsms?...&amp;meta-data=%3Fsmpp%3Fuse_message_payload%3D1</ulink>.
@@ -304,7 +304,7 @@
 			The source code is available from Kannel's site, through svn:
 		</para>
 		<para>
-			<emphasis>svn co https://svn.kannel.org/smppbox/trunk</emphasis>
+			<emphasis>svn co https://svn.kannel.org/opensmppbox/trunk</emphasis>
 		</para>
 		<para>
 			Authentication is not needed.
@@ -314,7 +314,7 @@
 	<sect1>
 		<title>Finding the documentation</title>
 
-		<para>SMPPBox documentation consists of two parts:
+		<para>OpenSMPPBox documentation consists of two parts:
 			<orderedlist>
 				<listitem><para><citetitle>User's Guide</citetitle>, namely the one
 					you're reading at the moment.</para></listitem>
@@ -330,7 +330,7 @@
 		</para>
 
 		<para>
-			Everything you need to install and use SMPPBox is in <citetitle>User's Guide.</citetitle>
+			Everything you need to install and use OpenSMPPBox is in <citetitle>User's Guide.</citetitle>
 			The guide is still incomplete in this respect. The <filename>README</filename> is not
 			supposed to be very important, nor contain much information. Instead,
 			it will just point to the other documentation.
@@ -341,8 +341,8 @@
 	<sect1>
 		<title>Compiling the proxy</title>
 
-		<para>If you are using SMPPBox on a supported platform, or one
-			that is similar enough to one, compiling Smppbox should be trivial.
+		<para>If you are using OpenSMPPBox on a supported platform, or one
+			that is similar enough to one, compiling opensmppbox should be trivial.
 			After you have unpacked the source package of your choice,
 			or after you have checked out the source code from SVN, enter
 			the following commands:
@@ -354,7 +354,7 @@
 
 			The <filename>configure</filename> script investigates various
 			things on your computer compilation needs, and writes out the
-			<filename>Makefile</filename> used to compile SMPPBox.
+			<filename>Makefile</filename> used to compile OpenSMPPBox.
 			<command>make</command> then runs the commands to actually
 			compile it. It generates the <filename>configure.log</filename>,
 			of all actions taken, usually the first step in debugging in case
@@ -396,7 +396,7 @@
 		<title>Installing the proxy</title>
 
 		<para>
-			After you have compiled SMPPBox, you need to install
+			After you have compiled OpenSMPPBox, you need to install
 			certain programs in a suitable place. This is most easily
 			done by using <command>make</command> again:
 
@@ -407,7 +407,7 @@
 			Replace <replaceable>/path/to/directory</replaceable> with the
 			pathname of the actual directory where the programs should be
 			installed.
-      Actually only a single program is installed <filename>smppbox</filename>.
+      Actually only a single program is installed <filename>opensmppbox</filename>.
       
       The user that runs make install needs to have write permissions
       do the bindir directory. It defaults to <filename>/usr/local/sbin</filename>.
@@ -420,8 +420,8 @@
 		<para>
 			After installation, you should now be able to run the Kannel init.d
 			script that will start the proxy. Run the script as root.
-			For open smppbox we don't have a seperate init script, but versions of the
-			Kannel init script are available that include starting open smppbox.
+			For opensmppbox we don't have a seperate init script, but versions of the
+			Kannel init script are available that include starting opensmppbox.
 		</para>
 
 		<screen><userinput>
@@ -438,7 +438,7 @@
 		</userinput></screen>
 		
 		<para>
-			If SMPPBox is already running and you just want to quickly
+			If OpenSMPPBox is already running and you just want to quickly
 			stop and start the gateway,e.g.to set a new configuration option,
 			run the script with the restart parameter.
 		</para>
@@ -450,21 +450,21 @@
 </chapter>
 
 <chapter>
-	<title>Using SMPPBox</title>
+	<title>Using OpenSMPPBox</title>
 
 	<para>
-		This chapter explains how the proxy, SMPPBox, is configured and used.
+		This chapter explains how the proxy, OpenSMPPBox, is configured and used.
 		It covers the configuration file and proxy administration during runtime.
 	</para>
 	<para>
-		There is only one configuration file for all parts of SMPPBox. If
+		There is only one configuration file for all parts of OpenSMPPBox. If
 		several proxy instances are distributed among different hosts, each one
 		needs to have its own configuration file, with its own options.
 	</para>
   <para>
-    In bearerbox's status page you can see all connected open smppbox clients as different smsboxes.
-    Note that the ip address that is listed on the status page of bearerbox is the one of open smppbox;
-    not the client ip address of the open smppbox user.
+    In bearerbox's status page you can see all connected opensmppbox clients as different smsboxes.
+    Note that the ip address that is listed on the status page of bearerbox is the one of opensmppbox;
+    not the client ip address of the opensmppbox user.
   </para>
 
 	<sect1>
@@ -497,17 +497,17 @@
 
 				<programlisting>
 1    # Proxy configuration
-2    group = smppbox
+2    group = opensmppbox
 3    bearerbox-host = 127.0.0.1
 4    bearerbox-port = 13000
-6    smppbox-id = smppbox1
-7    smppbox-port = 13001
-8    log-file = /var/log/kannel/smppbox.log
+6    opensmppbox-id = smppbox1
+7    opensmppbox-port = 13001
+8    log-file = /var/log/kannel/opensmppbox.log
 9    log-level = 0
 10   our-system-id = Inaccess
 11   route-to-smsc = fast_smsc
 12   # New accounts
-13   smpp-logins = /etc/smppbox/clients
+13   smpp-logins = /etc/opensmppbox/clients
 				</programlisting>
 			</para>
 
@@ -571,30 +571,30 @@
 				statement :
 
 				<programlisting>
-# SMPPBox configuration
+# OpenSMPPBox configuration
 
-include = "/etc/smppbox/conf/smppbox1.conf"
+include = "/etc/opensmppbox/conf/opensmppbox1.conf"
 				</programlisting>
 
-				Above is the main <literal>smppbox.conf</literal> configuration
-				file that includes the following <literal>smppbox1.conf</literal>
+				Above is the main <literal>opensmppbox.conf</literal> configuration
+				file that includes the following <literal>opensmppbox1.conf</literal>
 				file with all required directives for the specific box, and a
 				<literal>configurations</literal> directory which may include
 				more files to include.
 
 				<programlisting>
-# smppbox1.conf
+# opensmppbox1.conf
 
-group = smppbox
+group = opensmppbox
 bearerbox-host = 127.0.0.1
 bearerbox-port = 13002
-smppbox-id = Dutch
-smppbox-port = 13003
-log-file = "/var/log/kannel/smppbox.log"
+opensmppbox-id = Dutch
+opensmppbox-port = 13003
+log-file = "/var/log/kannel/opensmppbox.log"
 log-level = 1
 our-system-id = Inaccess
 route-to-smsc = cardboard
-smpp-logins = /etc/smppbox/clients
+smpp-logins = /etc/opensmppbox/clients
 				</programlisting>
 
 
@@ -615,21 +615,21 @@ smpp-logins = /etc/smppbox/clients
 		</sect2>
 
 		<sect2>
-			<title>SMPPBox configuration</title>
+			<title>OpenSMPPBox configuration</title>
 
 			<para>
-				SMPPBox configuration <emphasis>MUST</emphasis> always
+				OpenSMPPBox configuration <emphasis>MUST</emphasis> always
 				include a group for general proxy configuration. This group is
-				named as 'smppbox' in configuration file. It doesn't matter if
+				named as 'opensmppbox' in configuration file. It doesn't matter if
 				this is the first or a later group in the configuration file.
 			</para>
 
-			<para>In it's simplest form, 'smppbox' group looks like this:
+			<para>In it's simplest form, 'opensmppbox' group looks like this:
 
 				<programlisting>
-group = smppbox
+group = opensmppbox
 our-system-id = Inaccess
-smpp-logins = /etc/smppbox/clients
+smpp-logins = /etc/opensmppbox/clients
 				</programlisting>
 
 				Naturally this is not sufficient for any real use. Thus, one or
@@ -641,7 +641,7 @@ smpp-logins = /etc/smppbox/clients
 			</para>
 
 			<table frame="none">
-				<title>open smppbox Group Variables</title>
+				<title>opensmppbox Group Variables</title>
         <tgroup cols="3">
           <thead>
             <row>
@@ -656,7 +656,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>group (m)</literal>
               </entry>
               <entry>
-                <literal>smppbox</literal>
+                <literal>opensmppbox</literal>
               </entry>
               <entry valign="bottom">This is a mandatory variable</entry>
             </row>
@@ -681,32 +681,32 @@ smpp-logins = /etc/smppbox/clients
               </entry>
               <entry valign="bottom">
                 TCP port that bearerbox is listening for incoming
-                open smppbox connections. Should be the same as smsbox-port
+                opensmppbox connections. Should be the same as smsbox-port
                 configured in bearerbox. Defaults to 13001.
               </entry>
             </row>
             <row>
               <entry>
-                <literal>smppbox-id (o)</literal>
+                <literal>opensmppbox-id (o)</literal>
               </entry>
               <entry>
                 <literal>string</literal>
               </entry>
               <entry valign="bottom">
-                Optional open smppbox instance identifier. This is used for logging identification.
+                Optional opensmppbox instance identifier. This is used for logging identification.
               </entry>
             </row>
             <row>
               <entry>
-                <literal>smppbox-port (o)</literal>
+                <literal>opensmppbox-port (o)</literal>
               </entry>
               <entry>
                 <literal>port number</literal>
               </entry>
               <entry valign="bottom">
-                TCP port that open smppbox is listening for incoming ESME
+                TCP port that opensmppbox is listening for incoming ESME
                 connections. Defaults to 2345. If you want a different port 
-                number for each client, you will need to run a separate smppbox 
+                number for each client, you will need to run a separate opensmppbox 
                 instance for each port you are listening on.
               </entry>
             </row>
@@ -718,7 +718,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>filename</literal>
               </entry>
               <entry valign="bottom">
-                Filename that open smppbox will log messages. If missing,
+                Filename that opensmppbox will log messages. If missing,
                 logging is disabled.
               </entry>
             </row>
@@ -768,7 +768,7 @@ smpp-logins = /etc/smppbox/clients
               </entry>
               <entry valign="bottom">
                 File that contains authentication credentials for clients
-                connecting to open smppbox. This should be a file with a single
+                connecting to opensmppbox. This should be a file with a single
                 line per client, with username, password and system-type,
                 seperated by spaces. System-type is a special value. In
                 practice, you should have a different system-type for each
@@ -783,7 +783,7 @@ smpp-logins = /etc/smppbox/clients
                 <literal>boolean</literal>
               </entry>
               <entry valign="bottom">
-		If set to true, this smppbox user is authenticating as smsbox
+		If set to true, this opensmppbox user is authenticating as smsbox
 		to bearerbox as the system-id value (first parameter in
 		smpplogins.txt). If set to false (which is the default) then
 		the smsbox-id is the same as system-type (third parameter in
@@ -802,9 +802,9 @@ smpp-logins = /etc/smppbox/clients
 		If set to true, then open smpp will use PAM authentication
 		besides the usual smpplogins.txt file. The smpplogins.txt
 		file takes precedence here. If there the user cannot be
-		found there, open smppbox will try to use PAM authentication.
+		found there, opensmppbox will try to use PAM authentication.
 		use-systemid-as-smsboxid must be set to true if enable-pam
-		is also true. For this to work, open smppbox must be compiled
+		is also true. For this to work, opensmppbox must be compiled
 		with pam-support (configure --enable-pam).
               </entry>
             </row>
@@ -860,7 +860,7 @@ smpp-logins = /etc/smppbox/clients
     <row><entry><literal>timeout (o)</literal></entry>
       <entry><literal>number</literal></entry>
       <entry valign="bottom">
-      The smpp connection gets dropped if open smppbox does not
+      The smpp connection gets dropped if opensmppbox does not
       receive a valid pdu in this number of seconds.
 		(Defaults to 300).
      </entry></row>
@@ -873,7 +873,7 @@ smpp-logins = /etc/smppbox/clients
 
       <para>
         The smpplogins.txt file, as set by the smpp-logins configuration
-        variable defines all users that are able to bind as ESME to open smppbox.
+        variable defines all users that are able to bind as ESME to opensmppbox.
         The first three tokens of this file are the username, password and
         foreign system-type that form the credentials on which the bind-
         method of the ESME are being matched with. The last token and defines a

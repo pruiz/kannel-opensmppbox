@@ -8,7 +8,7 @@ Release: %{release}
 License: Kannel
 Group: System Environment/Daemons
 URL: http://www.kannel.org/~aguerrieri/
-Source0: smppbox-%{version}.tar.gz
+Source0: opensmppbox-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildRequires: bison, byacc, flex
 BuildRequires: kannel-devel, openssl-devel, zlib-devel
@@ -40,9 +40,9 @@ rm -rf %{buildroot}
 %{__mkdir_p} %{buildroot}%{_var}/log/kannel/
 %{__mkdir_p} %{buildroot}%{_var}/spool/kannel/
 
-%{__install} -D -m 0640 example/smppbox.conf.example %{buildroot}%{_sysconfdir}/kannel/smppbox.conf
+%{__install} -D -m 0640 example/opensmppbox.conf.example %{buildroot}%{_sysconfdir}/kannel/opensmppbox.conf
 
-strip %{buildroot}%{_sbindir}/smppbox
+strip %{buildroot}%{_sbindir}/opensmppbox
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -59,7 +59,7 @@ strip %{buildroot}%{_sbindir}/smppbox
 %files
 %defattr(-, root, root, 0755)
 %doc AUTHORS COPYING ChangeLog NEWS README UPGRADE
-%attr(0640, kannel, kannel) %config(noreplace) %{_sysconfdir}/kannel/smppbox.conf
+%attr(0640, kannel, kannel) %config(noreplace) %{_sysconfdir}/kannel/opensmppbox.conf
 %{_sbindir}/*
 %attr(0750, kannel, kannel) %dir %{_var}/log/kannel/
 %attr(0750, kannel, kannel) %dir %{_sysconfdir}/kannel/
@@ -67,4 +67,4 @@ strip %{buildroot}%{_sbindir}/smppbox
 
 %changelog
 * Mon Jun 07 2010 Rene Kluwen <rene.kluwen@chimit.nl>
-- First RPM version for Smppbox
+- First RPM version for OpenSMPPBox

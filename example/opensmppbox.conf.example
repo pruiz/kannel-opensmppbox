@@ -1,23 +1,23 @@
-# sample smppbox.conf
+# sample opensmppbox.conf
 
 group = core
 dlr-storage = mysql
 
-# this group defines your smppbox
-group = smppbox
+# this group defines your opensmppbox
+group = opensmppbox
 # our boxc type
-smppbox-id = abcd
+opensmppbox-id = abcd
 # the port to listen on for smpp connections
-smppbox-port = 2346
+opensmppbox-port = 2346
 # we connect to the following host as a box
 bearerbox-host = localhost
 bearerbox-port = 14009
 log-level = 0
-log-file = smppbox.log
+log-file = opensmppbox.log
 our-system-id = chim1
 route-to-smsc = my-default-smsc
 # see sample smpplogins.txt
-smpp-logins = "/home/smppbox/etc/smpplogins.txt"
+smpp-logins = "/home/opensmppbox/etc/smpplogins.txt"
 
 # the following is just standard dlr configuration
 

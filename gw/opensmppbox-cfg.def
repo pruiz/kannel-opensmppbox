@@ -1,7 +1,7 @@
 /* ====================================================================
  * The Kannel Software License, Version 1.0
  *
- * Copyright (c) 2001-2004 Kannel Group
+ * Copyright (c) 2001-2010 Kannel Group
  * Copyright (c) 1998-2001 WapIT Ltd.
  * All rights reserved.
  *
@@ -55,17 +55,17 @@
  */
 
 /* ==================================================================
- * Sqlbox-cfg.def - Definition of configuration groups and variables
+ * opensmppbox-cfg.def - Definition of configuration groups and variables
  *
  * Rene Kluwen rene.kluwen@chimit.nl
  *
  */
 
-SINGLE_GROUP(smppbox,
+SINGLE_GROUP(opensmppbox,
 	OCTSTR(bearerbox-host)
 	OCTSTR(bearerbox-port)
-	OCTSTR(smppbox-id)
-	OCTSTR(smppbox-port)
+	OCTSTR(opensmppbox-id)
+	OCTSTR(opensmppbox-port)
 	OCTSTR(log-file)
 	OCTSTR(log-level)
 	OCTSTR(our-system-id)
