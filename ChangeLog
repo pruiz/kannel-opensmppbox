@@ -1,4 +1,8 @@
 2010-10-06  Stipe Tolj  <stolj at kannel.org>
+    * gw/opensmppbox.c: remove 0-padding for %s type from snprintf(), as it
+      is not defined according to the man page and we get compiler warnings.
+      
+2010-10-06  Stipe Tolj  <stolj at kannel.org>
     * gw/opensmppbox.c: remove various compiler warnings. NLC.
     
 2010-10-06  Stipe Tolj  <stolj at kannel.org>

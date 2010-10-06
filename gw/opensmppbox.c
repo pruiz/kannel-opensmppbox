@@ -763,7 +763,9 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 
 	tmps = strstr(text, "err:");
 	if (tmps != NULL) {
-		snprintf(err, sizeof(err), "%03.3s", tmps + (4 * sizeof(char)));
+	    /* we can't use 0-padding with %s, if this is really required,
+	     * then convert the numeric string to a real integer. - st */
+		snprintf(err, sizeof(err), "%3.3s", tmps + (4 * sizeof(char)));
 		tmps = strstr(tmps, " ");
 		text = tmps ? tmps + (1 * sizeof(char)) : "";
 	}
