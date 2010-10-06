@@ -358,6 +358,7 @@ static int send_msg(Connection *conn, Boxc *boxconn, Msg *pmsg)
 }
 
 /* for heartbeat fn */
+/*
 static void write_to_bearerboxes(Msg *msg)
 {
 	long pos;
@@ -368,12 +369,15 @@ static void write_to_bearerboxes(Msg *msg)
 		send_msg(box->bearerbox_connection, box, msg);
 	}
 }
+*/
 
 /* for heartbeat fn */
+/*
 static long outstanding_requests(void)
 {
     return 10; 
 }
+*/
 
 /*
  * Identify ourself to bearerbox for opensmppbox-specific routing inside bearerbox.
@@ -394,7 +398,6 @@ static void identify_to_bearerbox(Boxc *conn)
 
 static Msg *read_from_box(Connection *conn, Boxc *boxconn)
 {
-    int ret;
     Octstr *pack;
     Msg *msg;
 
@@ -624,7 +627,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     if(box->source_addr_ton > -1 && box->source_addr_npi > -1) {
         pdu->u.deliver_sm.source_addr_ton = box->source_addr_ton;
         pdu->u.deliver_sm.source_addr_npi = box->source_addr_npi;
-        debug("bb.sms.smpp", 0, "SMPP[%s]: Manually forced source addr ton = %d, source add npi = %d",
+        debug("bb.sms.smpp", 0, "SMPP[%s]: Manually forced source addr ton = %ld, source add npi = %ld",
               octstr_get_cstr(box->boxc_id), box->source_addr_ton,
               box->source_addr_npi);
     } else {
@@ -656,7 +659,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     if (box->dest_addr_ton > -1 && box->dest_addr_npi > -1) {
         pdu->u.deliver_sm.dest_addr_ton = box->dest_addr_ton;
         pdu->u.deliver_sm.dest_addr_npi = box->dest_addr_npi;
-        debug("bb.sms.smpp", 0, "SMPP[%s]: Manually forced dest addr ton = %d, dest add npi = %d",
+        debug("bb.sms.smpp", 0, "SMPP[%s]: Manually forced dest addr ton = %ld, dest add npi = %ld",
               octstr_get_cstr(box->boxc_id), box->dest_addr_ton,
               box->dest_addr_npi);
     } else {
@@ -1355,7 +1358,7 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 			(*parts_list) = gwlist_create();
 			dict_put(list_dict, key, (*parts_list));
 		}
-		debug("opensmppbox", 0, "received %d of %d.", gwlist_len((*parts_list)) + 1, total);
+		debug("opensmppbox", 0, "received %ld of %d.", gwlist_len((*parts_list)) + 1, total);
 		if ((gwlist_len((*parts_list)) + 1) == total) {
 			debug("opensmppbox", 0, "received all parts of multi-part message.");
 			gwlist_append((*parts_list), msg);
@@ -1371,7 +1374,7 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 			else {
 				(*msg2)->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
 				(*msg2)->sms.boxc_id = octstr_duplicate(box->boxc_id);
-				debug("opensmppbox", 0, "multi-part message, length: %d.", octstr_len((*msg2)->sms.msgdata));
+				debug("opensmppbox", 0, "multi-part message, length: %ld.", octstr_len((*msg2)->sms.msgdata));
 				(*msg_to_send) = 1;
 			}
 		}
@@ -1812,12 +1815,12 @@ static void bearerbox_to_smpp(void *arg)
 				pdu->u.data_sm_resp.command_status = errcode;
 				break;
 			default:
-				debug("opensmppbox", 0, "Getting failure ack on unexpected pdu: %i.", pdu->type);
+				debug("opensmppbox", 0, "Getting failure ack on unexpected pdu: %s.", pdu->type_name);
 				break;
 			}
 			break;
 		default:
-			debug("opensmppbox", 0, "Unknown ack.nack type: %i.", msg->ack.nack);
+			debug("opensmppbox", 0, "Unknown ack.nack type: %ld.", msg->ack.nack);
 			break;
 		}
 		send_pdu(box->smpp_connection, box->boxc_id, pdu);
@@ -1937,7 +1940,6 @@ static void run_smppbox(void *arg)
     int fd;
     Boxc *newconn;
     long sender;
-    Msg *msg;
 
     fd = (int)arg;
     newconn = accept_smpp(fd, 0);
@@ -2102,9 +2104,7 @@ static void init_smppbox(Cfg *cfg)
 {
 	CfgGroup *grp;
 	Octstr *logfile;
-	Octstr *p;
 	long lvl;
-	int ssl = 0;
 
 	/* some default values */
 	smppbox_port = 13005;

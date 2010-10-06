@@ -1,4 +1,7 @@
 2010-10-06  Stipe Tolj  <stolj at kannel.org>
+    * gw/opensmppbox.c: remove various compiler warnings. NLC.
+    
+2010-10-06  Stipe Tolj  <stolj at kannel.org>
     * autotools/*, gw/Makefile.in, aclocal.m4, configure, Makefile.in: new 
       configure file after bootstrapping for distribution.
       
