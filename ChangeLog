@@ -1,3 +1,7 @@
+2010-11-10 Alexander Malysh <amalysh at kannel.org>
+    * gw/opensmppbox.c: applied patch that adds validity and deferred handling.
+      Thanks to "XEN-Housing s.r.o." <info at xen-housing.sk> and me :-) for this patch.
+
 2010-10-06  Stipe Tolj  <stolj at kannel.org>
     * gw/opensmppbox.c: remove 0-padding for %s type from snprintf(), as it
       is not defined according to the man page and we get compiler warnings.
