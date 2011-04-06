@@ -1492,7 +1492,7 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	SMPP_PDU *resp = NULL;
 	Msg *msg, *msg2, *mack;
 	long reason;
-	Octstr *msgid = NULL, *hold_service;
+	Octstr *msgid = NULL, *hold_service, *system_type;
 	int msg_to_send = 1;
 	List *parts_list = NULL;
 	char id[UUID_STR_LEN + 1];
@@ -1513,11 +1513,12 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 	}
 	switch (pdu->type) {
 	case bind_transmitter:
-		if (check_login(box, pdu->u.bind_transmitter.system_id, pdu->u.bind_transmitter.password, pdu->u.bind_transmitter.system_type, SMPP_LOGIN_TRANSMITTER)) {
+		system_type = pdu->u.bind_transmitter.system_type ? pdu->u.bind_transmitter.system_type : octstr_imm("");
+		if (check_login(box, pdu->u.bind_transmitter.system_id, pdu->u.bind_transmitter.password, system_type, SMPP_LOGIN_TRANSMITTER)) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_transmitter.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSMITTER;
-			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(system_type);
 			box->sms_service = octstr_duplicate(pdu->u.bind_transmitter.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transmitter_resp, pdu->u.bind_transmitter.sequence_number);
@@ -1529,11 +1530,12 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		}
 		break;
 	case bind_receiver:
-		if (check_login(box, pdu->u.bind_receiver.system_id, pdu->u.bind_receiver.password, pdu->u.bind_receiver.system_type, SMPP_LOGIN_RECEIVER)) {
+		system_type = pdu->u.bind_receiver.system_type ? pdu->u.bind_receiver.system_type : octstr_imm("");
+		if (check_login(box, pdu->u.bind_receiver.system_id, pdu->u.bind_receiver.password, system_type, SMPP_LOGIN_RECEIVER)) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_receiver.interface_version;
 			box->login_type = SMPP_LOGIN_RECEIVER;
-			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(system_type);
 			box->sms_service = octstr_duplicate(pdu->u.bind_receiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_receiver_resp, pdu->u.bind_receiver.sequence_number);
@@ -1545,11 +1547,12 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 		}
 		break;
 	case bind_transceiver:
-		if (check_login(box, pdu->u.bind_transceiver.system_id, pdu->u.bind_transceiver.password, pdu->u.bind_transceiver.system_type, SMPP_LOGIN_TRANSCEIVER)) {
+		system_type = pdu->u.bind_transceiver.system_type ? pdu->u.bind_transceiver.system_type : octstr_imm("");
+		if (check_login(box, pdu->u.bind_transceiver.system_id, pdu->u.bind_transceiver.password, system_type, SMPP_LOGIN_TRANSCEIVER)) {
 			box->logged_in = 1;
 			box->version = pdu->u.bind_transceiver.interface_version;
 			box->login_type = SMPP_LOGIN_TRANSCEIVER;
-			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(pdu->u.bind_transmitter.system_type);
+			box->boxc_id = systemidisboxcid ? octstr_duplicate(pdu->u.bind_transmitter.system_id) : octstr_duplicate(system_type);
 			box->sms_service = octstr_duplicate(pdu->u.bind_transceiver.system_id);
 			identify_to_bearerbox(box);
 			resp = smpp_pdu_create(bind_transceiver_resp, pdu->u.bind_transceiver.sequence_number);

@@ -1,3 +1,7 @@
+2011-04-07 Rene Kluwen <rene.kluwen at chimit.nl>
+    * gw/opensmppbox.c: Tested system_type on being provided by the smpp client,
+    because if not, opensmppbox would crash. Thanks to info at xen-housing.sk for reporting.
+
 2010-11-10 Alexander Malysh <amalysh at kannel.org>
     * gw/opensmppbox.c: applied patch that adds validity and deferred handling.
       Thanks to "XEN-Housing s.r.o." <info at xen-housing.sk> and me :-) for this patch.
