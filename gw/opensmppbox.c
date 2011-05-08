@@ -951,7 +951,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
          */
         if ((pdu->u.deliver_sm.data_coding & 0xF0) ||
             (!box->alt_charset && pdu->u.deliver_sm.data_coding == 0)) {
-            charset_latin1_to_gsm(pdu->u.deliver_sm.short_message);
+            charset_utf8_to_gsm(pdu->u.deliver_sm.short_message);
         }
         else if (pdu->u.deliver_sm.data_coding == 0 && box->alt_charset) {
             /*
@@ -1186,7 +1186,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
                              octstr_get_cstr(box->alt_charset), "ISO-8859-1");
                 msg->sms.coding = DC_7BIT;
             } else { /* assume GSM 03.38 7-bit alphabet */
-                charset_gsm_to_latin1(msg->sms.msgdata);
+                charset_gsm_to_utf8(msg->sms.msgdata);
                 msg->sms.coding = DC_7BIT;
             }
             break;
@@ -1224,7 +1224,7 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
                 msg->sms.coding = DC_8BIT;
             else if (msg->sms.coding == DC_7BIT || msg->sms.coding == DC_UNDEF) { /* assume GSM 7Bit , reencode */
                 msg->sms.coding = DC_7BIT;
-                charset_gsm_to_latin1(msg->sms.msgdata);
+                charset_gsm_to_utf8(msg->sms.msgdata);
             }
     }
     msg->sms.pid = pdu->u.submit_sm.protocol_id;
@@ -1372,7 +1372,7 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
                              octstr_get_cstr(box->alt_charset), "ISO-8859-1");
                 msg->sms.coding = DC_7BIT;
             } else { /* assume GSM 03.38 7-bit alphabet */
-                charset_gsm_to_latin1(msg->sms.msgdata);
+                charset_gsm_to_utf8(msg->sms.msgdata);
                 msg->sms.coding = DC_7BIT;
             }
             break;
@@ -1410,7 +1410,7 @@ static Msg *data_sm_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
                 msg->sms.coding = DC_8BIT;
             else if (msg->sms.coding == DC_7BIT || msg->sms.coding == DC_UNDEF) { /* assume GSM 7Bit , reencode */
                 msg->sms.coding = DC_7BIT;
-                charset_gsm_to_latin1(msg->sms.msgdata);
+                charset_gsm_to_utf8(msg->sms.msgdata);
             }
     }
 

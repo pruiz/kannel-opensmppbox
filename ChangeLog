@@ -1,3 +1,8 @@
+2011-05-09 Rene Kluwen <rene.kluwen at chimit.nl>
+    * gw/opensmppbox.c: Default GSM character set is converted to UTF-8 (Kannel's internal
+    way of exchanging messages). The facilitates foreign (e.g. greek) characters.
+    Thanks to Nii Ako Ampa-Sowa (ampasowa at gmail.com) for the patch.
+
 2011-04-07 Rene Kluwen <rene.kluwen at chimit.nl>
     * gw/opensmppbox.c: Tested system_type on being provided by the smpp client,
     because if not, opensmppbox would crash. Thanks to info at xen-housing.sk for reporting.
