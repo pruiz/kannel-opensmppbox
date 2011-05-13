@@ -505,7 +505,7 @@ else
         AC_MSG_RESULT([$gw_version])
         AC_MSG_CHECKING([Kannel libs])
         if ! $GW_CONFIG --libs &>/dev/null ; then
-                LDFLAGS="$LDFLAGS `$GW_CONFIG --libs`"
+                LIBS="$LIBS `$GW_CONFIG --libs`"
                 gw_libdir=`$GW_CONFIG --libs`
                 AC_MSG_RESULT([$gw_libdir])
         fi
