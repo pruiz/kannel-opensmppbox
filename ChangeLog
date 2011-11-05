@@ -1,3 +1,7 @@
+2011-11-05 Rene Kluwen <rene.kluwen at chimit.nl>
+    * gw/opensmppbox.c: Fixed memory leak concerning MO messages.
+    Thanks to Victor Luchitz for reporting.
+
 2011-05-13 Rene Kluwen <rene.kluwen at chimit.nl>
     * configure.in: the new configure file didn't seem to work, after make rpm.
     Couldn't find the Kannel libraries. This patch fixes that.

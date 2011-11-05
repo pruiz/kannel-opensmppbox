@@ -901,6 +901,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 			if (box->version > 0x33) {
 				pdu2->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid2);
 				pdu2->u.deliver_sm.message_state = dlr_state;
+				dict_destroy(pdu2->u.deliver_sm.tlv);
 				pdu2->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
 			}
 			pdu2->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%s text:%12s", msgid2, dlvrd, submit_date_c_str, done_date_c_str, dlr_status, err, text);
@@ -913,6 +914,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		if (box->version > 0x33) {
 			pdu->u.deliver_sm.receipted_message_id = octstr_duplicate(msgid);
 			pdu->u.deliver_sm.message_state = dlr_state;
+			dict_destroy(pdu->u.deliver_sm.tlv);
 			pdu->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
 		}
 		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%s text:%12s", msgid, dlvrd, submit_date_c_str, done_date_c_str, dlr_status, err, text);
@@ -1053,6 +1055,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 	        }
 
 	        if (box->version > 0x33) {
+		    dict_destroy(pdu2->u.deliver_sm.tlv);
 	            pdu2->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
 	        }
 
@@ -1064,6 +1067,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
     }
     else {
         if (box->version > 0x33) {
+	    dict_destroy(pdu->u.deliver_sm.tlv);
             pdu->u.deliver_sm.tlv = meta_data_get_values(msg->sms.meta_data, "smpp");
         }
 
