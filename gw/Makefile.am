@@ -1,4 +1,4 @@
 sbin_PROGRAMS = opensmppbox
-opensmppbox_SOURCES = opensmppbox.c
+opensmppbox_SOURCES = box-dlr.c opensmppbox.c
 
 EXTRA_DIST =

@@ -25,9 +25,6 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
-/* Define to 1 if you have the `gwlib' library (-lgwlib). */
-#undef HAVE_LIBGWLIB
-
 /* Define to 1 if you have the `pam' library (-lpam). */
 #undef HAVE_LIBPAM
 
@@ -100,8 +97,36 @@
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
 
+/* Define if you have and want to use the FreeTDS ct-lib */
+#undef HAVE_MSSQL
+ 
+/* Define if you have and want to use the MySQL client library (-lmysqlclient) */
+#undef HAVE_MYSQL
+ 
+/* Define if you have and want to use the sdb client library (-lsdb) */  
+#undef HAVE_SDB
+  
+/* Define if you have and want to use the OCI library */
+#undef HAVE_ORACLE
+ 
+/* Define if you have and want to use the SQLite database library (-lsqlite) */
+#undef HAVE_SQLITE
+ 
+/* Define if you have and want to use the SQLite3 database library (-lsqlite3) */
+#undef HAVE_SQLITE3
+  
+/* Define version of used libSDB */
+#undef LIBSDB_VERSION
+ 
+/* Define if you have and want to use the PostgreSQL dlr routines (-lpq) */
+#undef HAVE_PGSQL
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
 
 /* Name of package */
 #undef PACKAGE

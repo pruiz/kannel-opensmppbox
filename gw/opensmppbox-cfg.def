@@ -58,11 +58,12 @@
  * opensmppbox-cfg.def - Definition of configuration groups and variables
  *
  * Rene Kluwen rene.kluwen@chimit.nl
- *
+ * Aarno Syvanen aarno at alisanusdot com
  */
 
 SINGLE_GROUP(opensmppbox,
-	OCTSTR(bearerbox-host)
+        OCTSTR(box-dlr-storage)
+        OCTSTR(bearerbox-host)
 	OCTSTR(bearerbox-port)
 	OCTSTR(opensmppbox-id)
 	OCTSTR(opensmppbox-port)
@@ -78,6 +79,14 @@ SINGLE_GROUP(opensmppbox,
 	OCTSTR(dest-addr-npi)
 	OCTSTR(timeout)
 	OCTSTR(use-systemid-as-smsboxid)
+        OCTSTR(use-smppboxid)
 	OCTSTR(enable-pam)
 	OCTSTR(pam-acl)
+        OCTSTR(box-msg-id)
 )
+
+MULTI_GROUP(client-route,
+    OCTSTR(client-id)
+    OCTSTR(smsc-id)
+    OCTSTR(shortcode)
+) 

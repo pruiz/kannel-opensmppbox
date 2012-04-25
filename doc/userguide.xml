@@ -49,6 +49,15 @@
 			</address>
 		</affiliation>
 	</author>
+        <author>
+                <firstname>Aarno</firstname>
+                <surname>Syvanen</surname>
+                <affiliation>
+                       <jobtitle>Software engineer</jobtitle>
+                       <orgname>Alisanus Gmbh</orgname>
+                       <address><email>aarno@alisanus.com</email></address>
+                </affiliation>
+        </author> 
 </authorgroup>
 
 	<abstract>
@@ -361,6 +370,31 @@
 			of errors.
 		</para>
 
+                <para> It is pssoble, when you load a new version of opensmppbox, that 
+                       you must do - before previous commands - following
+
+                       <screen><userinput>
+                                automake
+                                autoconf
+                        </userinput></screen>
+
+                        These will allow compiling of added source files.                      
+                </para>
+
+                <para>
+                        If you want to store DLRs to a database, you must configure 
+                        opensamppbox to support this database. E.g., if your dabase
+                        is mysql, use <literal>--with-mysql</literal>option, or if 
+                        you mysqlclient library is stored in an unusal place, 
+                        <literal>--with-mysql-dir=DIR</literal>. If you 
+                        want to use PAM authentication, use <literal>--enable-pam
+                        </literal>.
+                </para>
+
+                <para>
+                        <literal>./configure --help</literal> will display full list of
+                        configuration options.
+                </para>
 		<para>
 			If either command writes out an error message and stops
 			before it finishes its job, you have a problem, and you either
@@ -498,21 +532,23 @@
 				<programlisting>
 1    # Proxy configuration
 2    group = opensmppbox
-3    bearerbox-host = 127.0.0.1
-4    bearerbox-port = 13000
-6    opensmppbox-id = smppbox1
-7    opensmppbox-port = 13001
-8    log-file = /var/log/kannel/opensmppbox.log
-9    log-level = 0
-10   our-system-id = Inaccess
-11   route-to-smsc = fast_smsc
-12   # New accounts
-13   smpp-logins = /etc/opensmppbox/clients
+3    box-dlr-storage = mysql
+4    box-msg-id = id
+5    bearerbox-host = 127.0.0.1
+6    bearerbox-port = 13000
+7    opensmppbox-id = smppbox1
+8    opensmppbox-port = 13001
+9    log-file = /var/log/kannel/opensmppbox.log
+10   log-level = 0
+11   our-system-id = Inaccess
+12   route-to-smsc = fast_smsc
+13   # New accounts
+14   smpp-logins = /etc/opensmppbox/clients
 				</programlisting>
 			</para>
 
 			<para>
-				Lines 1 and 12 are comment lines. A blank line is needed to
+				Lines 1 and 13 are comment lines. A blank line is needed to
 				separate groups. The remaining lines define variables. The
 				group type is defined by the group variable value.
 			</para>
@@ -586,6 +622,8 @@ include = "/etc/opensmppbox/conf/opensmppbox1.conf"
 # opensmppbox1.conf
 
 group = opensmppbox
+box-dlr-storage e mysql
+box-msg-id = id
 bearerbox-host = 127.0.0.1
 bearerbox-port = 13002
 opensmppbox-id = Dutch
@@ -616,8 +654,10 @@ smpp-logins = /etc/opensmppbox/clients
 
 		<sect2>
 			<title>OpenSMPPBox configuration</title>
+                        <sect3>
+                        <title>Configuring OpenSMPPBox  core group</title>
 
-			<para>
+                         <para>
 				OpenSMPPBox configuration <emphasis>MUST</emphasis> always
 				include a group for general proxy configuration. This group is
 				named as 'opensmppbox' in configuration file. It doesn't matter if
@@ -658,7 +698,41 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>opensmppbox</literal>
               </entry>
-              <entry valign="bottom">This is a mandatory variable</entry>
+              <entry valign="top">This is a mandatory variable</entry>
+            </row>
+            <row>
+            <entry> <literal>box-dlr-storage</literal>
+            </entry>
+            <entry> <literal>string</literal>
+            </entry>
+            <entry valign="top">
+            Opensmppbox needs message ids of stored messagea, so it
+            has its own DLR storage. Variable defines type of database,
+            or lack of it. E.g., id you have build-in external DLR storage 
+            support, i.e. using MySQL you may define here the alternative 
+            storage type like <literal>mysql</literal>.
+            Supported types are:
+            <literal>internal</literal>,
+            <literal>mysql</literal>,
+            <literal>pgsql</literal>,
+            <literal>sdb</literal>,
+            <literal>mssql</literal>,
+            <literal>sqlite3</literal> and 
+            <literal>oracle</literal>.
+            By default this is set to <literal>internal</literal>.
+            This means that DLRs are not stored to hard disk at all.
+            </entry></row>
+            <row>
+            <entry><literal>box-msg-id</literal>
+            </entry>
+            <entry><literal>string</literal>
+            </entry>
+            <entry valign="top">
+            The table field that opensmppbox uses to store the message id
+            of SM to delivered. This is required to guarantee that DLR messages 
+            are routed back to the client that sent the original message. This 
+            is done via the smppbox client routing.
+            </entry>
             </row>
             <row>
               <entry>
@@ -667,7 +741,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>hostname</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 Bearerbox server. FQDN or IP address. Defaults to
                 localhost.
               </entry>
@@ -679,7 +753,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>port number</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 TCP port that bearerbox is listening for incoming
                 opensmppbox connections. Should be the same as smsbox-port
                 configured in bearerbox. Defaults to 13001.
@@ -692,9 +766,24 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>string</literal>
               </entry>
-              <entry valign="bottom">
-                Optional opensmppbox instance identifier. This is used for logging identification.
+              <entry valign="top">
+                Optional opensmppbox instance identifier. This is used for logging identification,
+                and as opensmppbox box id, if usesmppboxid is set
               </entry>
+            </row>
+            <row>
+            <entry>
+              <literal> use-smppboxid (o) </literal>
+            </entry>
+            <entry>
+              <literal> Boolean </literal>
+            </entry>
+            <entry valign = "top">
+                If this flag is set, openamppbox will make only one connection to bearwrbox, and
+                use opensmppbox-id as its box id. If this flag is not set, every client will 
+                have a separate connection instead. Not that if you use this flag, you must set
+                use-systemid-as-smsboxid flag, too.
+            </entry>            
             </row>
             <row>
               <entry>
@@ -703,7 +792,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>port number</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 TCP port that opensmppbox is listening for incoming ESME
                 connections. Defaults to 2345. If you want a different port 
                 number for each client, you will need to run a separate opensmppbox 
@@ -717,7 +806,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>filename</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 Filename that opensmppbox will log messages. If missing,
                 logging is disabled.
               </entry>
@@ -729,7 +818,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>integer (0...5)</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 Logging level. From maximum (0) to minimum (4).
                 Defaults to 0.
               </entry>
@@ -741,7 +830,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>string</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 Corresponds to SMSC identification transmitted to connected
                 ESMEs.
               </entry>
@@ -753,7 +842,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>string</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 Corresponds to smsc-id defined in bearerbox. If set, it
                 will send SMS through this SMSc, else it will let
                 bearerbox route the SMS. Defaults to bearerbox routing.
@@ -766,7 +855,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>filename</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
                 File that contains authentication credentials for clients
                 connecting to opensmppbox. This should be a file with a single
                 line per client, with username, password and system-type,
@@ -782,7 +871,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>boolean</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
 		If set to true, this opensmppbox user is authenticating as smsbox
 		to bearerbox as the system-id value (first parameter in
 		smpplogins.txt). If set to false (which is the default) then
@@ -798,7 +887,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>boolean</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
 		If set to true, then open smpp will use PAM authentication
 		besides the usual smpplogins.txt file. The smpplogins.txt
 		file takes precedence here. If there the user cannot be
@@ -815,7 +904,7 @@ smpp-logins = /etc/opensmppbox/clients
               <entry>
                 <literal>pam acl account</literal>
               </entry>
-              <entry valign="bottom">
+              <entry valign="top">
 		If enable-pam is true, authentication is done against
 		this pam account. It must be present in /etc/pam.d.
 		If not given, then the value "kannel" is used.
@@ -823,21 +912,21 @@ smpp-logins = /etc/opensmppbox/clients
             </row>
     <row><entry><literal>source-addr-ton (o)</literal></entry>
       <entry><literal>number</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
       Manually override source address TON setting for the link.
 		(Defaults to -1, do not override).
      </entry></row>
 
     <row><entry><literal>source-addr-npi (o)</literal></entry>
       <entry><literal>number</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
       Manually override source address NPI setting for the link.
 		(Defaults to -1, do not override).
      </entry></row>
 
     <row><entry><literal>source-addr-autodetect (o)</literal></entry>
       <entry><literal>boolean</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
 		If defined tries to scan the source address and 
 		set TON and NPI settings accordingly.
 		(Defaults to no).
@@ -845,30 +934,554 @@ smpp-logins = /etc/opensmppbox/clients
 
     <row><entry><literal>dest-addr-ton (o)</literal></entry>
       <entry><literal>number</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
       Manually override destination address TON setting for the link.
 		(Defaults to -1, do not override).
      </entry></row>
 
     <row><entry><literal>dest-addr-npi (o)</literal></entry>
       <entry><literal>number</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
       Manually override destination address NPI setting for the link.
 		(Defaults to -1, do not override).
      </entry></row>
 
     <row><entry><literal>timeout (o)</literal></entry>
       <entry><literal>number</literal></entry>
-      <entry valign="bottom">
+      <entry valign="top">
       The smpp connection gets dropped if opensmppbox does not
       receive a valid pdu in this number of seconds.
 		(Defaults to 300).
-     </entry></row>
+     </entry></row></tbody></tgroup>
+     </table>
+     </sect3>
+
+    <sect3>
+    <title>Configuring routing of MOs</title>
+    <para>
+    If usesmppbox-id variable is used, you probably want to configure
+    one or more client-route group. It instructs opensmppbox to route 
+    certain MOs to a specific client. If this group is missing, a random 
+    client is picked instead. If both shortcode and and client-id variable is 
+    supplied, this is interpreted as logical AND: only messages 
+    addressed to the specifed shortcode and coming from specified 
+    smsc are routed to client in question.
+    </para>
+
+    <table frame="none">
+                                <title>client-route Group Variables</title>
+        <tgroup cols="3">
+          <thead>
+            <row>
+              <entry>Variable</entry>
+              <entry>Value</entry>
+              <entry>Description</entry>
+            </row>
+          </thead>
+          <tbody>
+    <row><entry><literal>group (o) </literal></entry>
+      <entry><literal>client-route</literal></entry>
+      <entry valign="top">
+      Optional. Configure this if you se use-smppboxid variable 
+      and want MOs routed to a certain client
+      </entry></row> 
+
+    <row><entry><literal>client-id</literal></entry>
+      <entry><literal>string</literal></entry>
+      <entry valign="top">
+      System id of the client the messages should be routed. Use
+      variable use-systemid-as-smsboxid to allow routing. 
+      </entry></row>
+
+    <row><entry><literal>shortcode</literal></entry>
+      <entry><literal>list of numbers separated by semicolons</literal></entry>
+      <entry valign="top">
+      If set, specifies which receiver numbers for inbound messages 
+      should be routed to this client. This rule may be used to pull 
+      receiver number specific message streams to a client. 
+      </entry></row>
+
+    <row><entry><literal>smsc-id</literal></entry>
+      <entry><literal>list of strings separated by semicolons</literal></entry>
+      <entry valign="top">
+      If set, specifies from which smsc-ids all inbound messages should be routed 
+      to this client. This rule may be used to pull any smsc specific message 
+      stream to a client.
+      </entry></row>
           </tbody>
         </tgroup>
-</table>
-</sect2>
-    <sect2>
+      </table>
+      </sect3>
+
+      <sect3>
+      <title>Configuring external DLR storage</title>
+      <para>
+       You probable want to use database to store DLRs, even if storage is only 
+       temporay (DLRs will be removed from storage after successful delivery, but 
+       opensmppbox could crash or  down orderly before this happens).
+       To do ths, you must configure <literal>dlr-db</literal> and database connection
+       groups. There are a separate group for every database type. If none external
+       database id defined, DLRs are stored in memeory
+      </para>
+
+       <sect4>
+        <title>Internal DLR storage</title>
+
+   <para>This is the default way in handling DLRs and does not
+        require any special configuration. In order to configure bearerbox
+        to use internal DLR storage use <literal>dlr-storage = internal</literal>
+        in the <literal>core</literal> group and <literal>box-dlr-storage = 
+        internal</literal>.
+        </para>
+   </sect4>
+
+   <sect4>
+        <title>MySQL DLR storage</title>
+        <para>To store DLR information into a MySQL database you may use the
+        <literal>dlr-storage = mysql</literal> configuration directive in the
+        <literal>core</literal> group and <literal>box-dlr-storage =
+        internal</literal> in the <literal>opensmppbox</literal> group..
+        </para>
+        <para>In addition to that you must have a <literal>dlr-db</literal>
+        group defined that specifies the table field names that are used to the
+        DLR attributes and a <literal>mysql-connection</literal> group that
+        defines the connection to the MySQL server itself.
+        </para>
+        <para>Here is the example configuration from:
+
+<programlisting>
+group = mysql-connection
+id = mydlr
+host = localhost
+username = foo
+password = bar
+database = dlr
+max-connections = 1      
+
+group = dlr-db
+id = mydlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+        </para>
+
+        <para>MySQL database connection is configured as follows:</para>
+
+         <table frame="none">
+  <title>MySQL Connection Group Variables</title>
+  <tgroup cols="3">
+  <thead>
+   <row>
+     <entry>Variable</entry>
+     <entry>Value</entry>
+     <entry>Description</entry>
+   </row>
+  </thead>
+  <tbody>
+   <row><entry><literal>group</literal></entry>
+     <entry><literal>mysql-connection</literal></entry>
+     <entry valign="top">
+       Th0is is a mandatory variable
+     </entry></row>
+
+   <row><entry><literal>id (m)</literal></entry>
+     <entry><literal>string</literal></entry>
+     <entry valign="top">
+             An optional name or id to identify this MySQL connection
+                  for internal reference with other MySQL related configuration
+                  groups. Any string is acceptable, but semicolon ';' may cause
+                  problems, so avoid it and any other special non-alphabet characters.
+     </entry></row>
+     
+     <row><entry><literal>host (m)</literal></entry>
+     <entry>hostname or IP</entry>
+     <entry valign="bottom">
+        Hostname or IP of a server running a MySQL database to connect to.
+     </entry></row>
+
+    <row><entry><literal>username (m)</literal></entry>
+     <entry>username</entry>
+     <entry valign="bottom">
+        User name for connecting to MySQL database.
+     </entry></row>
+
+      <row><entry><literal>password (m)</literal></entry>
+     <entry>password</entry>
+     <entry valign="bottom">
+        Password for connecting to MySQL database.
+     </entry></row>
+
+    <row><entry><literal>database (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="bottom">
+        Name of database in MySQL database server to connect to.
+     </entry></row>
+
+        <row><entry><literal>max-connections</literal></entry>
+     <entry>integer</entry>
+     <entry valign="bottom">
+        How many connections should be opened to the given database.
+        This is used for database pool.
+     </entry></row>
+
+  </tbody>
+  </tgroup>
+ </table>
+
+  <para>A sample 'mysql-connection' group:
+
+<programlisting>
+group = mysql-connection
+id = dlr-db
+host = localhost
+username = foo
+password = bar
+database = dlr
+max-connections = 1
+</programlisting>
+
+ </para>
+  </sect4>
+
+  <sect4>
+        <title>LibSDB DLR storage</title>
+        <para>To store DLR information into a LibSDB resource (which is an
+        abstraction of a real database) you may use the
+        <literal>dlr-storage = sdb</literal> configuration directive in the
+        <literal>core</literal> group and <literal>box-dlr-storage = sdb</literal> 
+        configuration directive in the <literal>opensmppbox</literal> group.
+        </para>
+        <para>In addition to that you must have a <literal>dlr-db</literal>
+        group defined that specifies the table field names that are used to the
+        DLR attributes and a <literal>sdb-connection</literal> group that
+        defines the LibSDB resource itself.
+        </para>
+        <para>Here is the example configuration using a PostgreSQL resource:
+
+<programlisting>
+group = sdb-connection
+id = pgdlr
+url = "postgres:host=localhost:db=myapp:port=1234"
+max-connections = 1
+
+id = pgdlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+        </para>
+  <para>Beware that you have the DB support build in your LibSDB
+  installation when trying to use a specific DB type within the URL.
+  </para>
+
+        </sect4>
+ 
+      <sect4>
+      <title>Oracle 8i/9i DLR storage</title>
+        <para>To store DLR information into a Oracle database you may use the
+        <literal>dlr-storage = oracle</literal> configuration directive in the
+        <literal>core</literal> group and <literal>box-dlr-storage = oracle</literal> 
+        configuration directive in the <literal>opensmppbox</literal> group.
+        </para>
+        <para>In addition to that you must have a <literal>dlr-db</literal>
+        group defined that specifies the table field names that are used to the
+        DLR attributes and a <literal>oracle-connection</literal> group that
+        defines the connection to the Oracle server itself.
+        </para>
+        <para>Here is the example configuration:
+
+<programlisting>
+group = oracle-connection
+id = mydlr
+username = foo
+password = bar
+tnsname = dlr
+max-connections = 1
+
+id = mydlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+        </para>
+
+        </sect4>
+
+        <sect4>
+        <title>PostgreSQL DLR storage</title>
+        <para>To store DLR information into a PostgreSQL database you may use the
+        <literal>dlr-storage = pgsql</literal> configuration directive in the
+        <literal>core</literal> group and <literal>box-dlr-storage = pgsql</literal> 
+        configuration directive in the <literal>opensmppbox</literal> group.
+        </para>
+        <para>In addition to that you must have a <literal>dlr-db</literal>
+        group defined that specifies the table field names that are used to the
+        DLR attributes and a <literal>pgsql-connection</literal> group that
+        defines the connection to the PostgreSQL server itself.
+        </para>
+        <para>Here is the example configuration:
+
+<programlisting>
+group = pgsql-connection
+id = mydlr
+host = myhost.com
+username = foo
+password = bar
+database = dlr
+max-connections = 1
+
+group = dlr-db
+id = mydlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+        </para>
+      </sect4>
+      <sect4>
+      <title>MS-SQL/Sybase DLR storage</title>
+    <para>To store DLR information into a MS-SQL or Sybase (via FreeTDS)
+    database you may use the <literal>dlr-storage = mssql</literal>
+    configuration directive in the <literal>core</literal> group and 
+    <literal>box-dlr-storage = mssql</literal> configuration directive in 
+    the <literal>opensmppbox</literal> group.
+    </para>
+    <para>In addition to that you must have a <literal>dlr-db</literal>
+    group defined that specifies the table field names that are used to the
+    DLR attributes and a <literal>mssql-connection</literal> group that
+    defines the connection to the MS-SQL or Sybase server itself.
+    </para>
+    <para>Please note that the <literal>server</literal> configuration directive
+    must match the corresponding <literal>[section]</literal> on
+    <literal>freetds.conf</literal></para>
+    <para>Here is the example configuration:
+
+<programlisting>
+group = mssql-connection
+id = msdlr
+server = myservername
+username = foo
+password = bar
+database = dlr
+max-connections = 1
+
+group = dlr-db
+id = msdlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+    </para>
+
+    </sect4>
+
+        <sect4>
+        <title>SQLite3 DLR storage</title>
+        <para>To store DLR information into a SQLite3 database you may use the
+        <literal>dlr-storage = sqlite3</literal> configuration directive in the
+        <literal>core</literal> group and <literal>box-dlr-storage = sqlite3</literal> 
+        configuration directive in the <literal>opensmppbox</literal> group.
+        </para>
+        <para>In addition to that you must have a <literal>dlr-db</literal>
+        group defined that specifies the table field names that are used to the
+        DLR attributes and a <literal>sqlite3-connection</literal> group that
+        defines the connection to the SQLite3 database itself.
+        </para>
+        <para>Here is the example configuration:
+
+<programlisting>
+group = sqlite3-connection
+id = mydlr
+database = /path/to/file
+max-connections = 1
+
+group = dlr-db
+id = mydlr
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-destination = destination
+field-source = source
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+      
+        </para>
+
+        </sect4>
+      </sect3>
+
+      <sect3>
+         <title>DLR database field configuration</title>
+        <para>For external database storage of DLR information in relational
+        database management systems (RDBMS) you will have to specify which table
+        field are used to represent the stored data. This is done via the
+        <literal>dlr-db</literal> group as follows:
+        </para>
+
+         <table frame="none">
+  <title>DLR Database Field Configuration Group Variables</title>
+  <tgroup cols="3">
+  <thead>
+   <row>
+     <entry>Variable</entry>
+     <entry>Value</entry>
+     <entry>Description</entry>
+   </row>
+  </thead>
+  <tbody>
+   <row><entry><literal>group</literal></entry>
+     <entry><literal>dlr-db</literal></entry>
+     <entry valign="top">
+       This is a mandatory variable
+     </entry></row>
+
+      <row><entry><literal>id (m)</literal></entry>
+     <entry><literal>string</literal></entry>
+     <entry valign="top">
+             An id to identify which external connection should be used for
+                  DLR storage. Any string is acceptable, but semicolon ';' may cause
+                  problems, so avoid it and any other special non-alphabet characters.
+     </entry></row>
+
+   <row><entry><literal>table (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The name of the table that is used to store the DLR information.
+     </entry></row>
+
+       <row><entry><literal>field-smsc (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the smsc data.
+     </entry></row>
+
+   <row><entry><literal>field-timestamp (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the timestamp data.
+     </entry></row>
+
+   <row><entry><literal>field-destination (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the destination number data.
+     </entry></row>
+
+     <row><entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the source number data.
+     </entry></row>
+
+   <row><entry><literal>field-service (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the service username data.
+     </entry></row>
+
+      <row><entry><literal>field-url (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="bottom">
+        The table field that is used for the DLR URL which is triggered
+                  when the DLR for this message arrives from the SMSC.
+     </entry></row>
+
+   <row><entry><literal>field-mask (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used for the DLR mask that has been set
+                  for a message.
+     </entry></row>
+
+      <row><entry><literal>field-status (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used to reflect the status of the DLR
+                  for a specific message.
+     </entry></row>
+
+   <row><entry><literal>field-boxc-id (m)</literal></entry>
+     <entry>string</entry>
+     <entry valign="top">
+        The table field that is used to store the smsbox connection id
+                  that has passed the message for delivery. This is required in
+                  cases you want to guarantee that DLR messages are routed back to
+                  the same smsbox conn instance. This is done via the smsbox routing.
+                  If you don't use smsbox routing simply add this field to your
+                  database table and keep it empty.
+     </entry></row>
+
+  </tbody>
+  </tgroup>
+ </table>
+     <para> Here is an example configuration group
+<programlisting>
+group = dlr-db
+id = dlr-db
+table = dlr
+field-smsc = smsc
+field-timestamp = ts
+field-source = source
+field-destination = destination
+field-service = service
+field-url = url
+field-mask = mask
+field-status = status
+field-boxc-id = boxc
+</programlisting>
+
+  </para>
+  <para>Beware that all variables in this group are mandatory, so you
+  have to specify all fields to enable bearerbox to know how to store
+  and retrieve the DLR information from the external storage spaces.
+  </para>
+ </sect3>
+ </sect2>
+ <sect2>
       <title>smpp logins</title>
 
       <para>

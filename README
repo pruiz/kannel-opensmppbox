@@ -30,7 +30,28 @@ opensmppbox.
 
 The Userguide has also valuable information about the install and configuration
 steps. To create the userguide, run ./configure with --enable-docs and then
-type "make docs".
+type "make docs'.
+
+ENABLING DATABASE STORAGE AND PAM AUTHETICATION
+
+  Following configration options are used for compiling support for features
+  you may find useful.  
+
+  --enable-pam            enable PAM authetication support
+  --with-ctlib=DIR      Include Ct-Lib support.  DIR is the Ct-Lib
+                          install directory, defaults to /opt/sybase
+  --with-mysql-dir=DIR    where to look for MySQL libs and header files
+                          DIR points to the installation [/usr/local/mysql]
+  --with-sdb              enable LibSDB storage [disabled]
+  --with-sqlite3          enable SQLite3 storage [disabled]
+  --with-oracle           enable ORACLE storage [disabled]
+  --with-oracle-includes=DIR  adds oracle include paths
+  --with-oracle-libs=DIR  adds oracle library path
+  --with-pgsql            enable PostgreSQL storage [disabled]
+  --with-pgsql-dir=DIR    where to look for PostgreSQL libs and header files
+                          DIR points to the installation [/usr/local/pgsql]
+  --with-mssql=DIR        Include FreeTDS Ct-Lib support.  DIR is the FreeTDS
+                          install directory, defaults to /usr/local.
 
 HELP
 ====

@@ -38,6 +38,9 @@ The simplest way to compile this package is:
      `sh ./configure' instead to prevent `csh' from trying to execute
      `configure' itself.
 
+     If you want to use database storage for DLRs or PAM authetication, you 
+     must configure with correspondign options.t
+
      Running `configure' takes awhile.  While running, it prints some
      messages telling which features it is checking for.
 

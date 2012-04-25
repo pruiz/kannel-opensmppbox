@@ -1,3 +1,7 @@
+2011-04-25 Aarno Syvanen
+    * config section use-smppoxid added.
+    * added stand alone external dlr storage
+
 2011-11-05 Rene Kluwen <rene.kluwen at chimit.nl>
     * gw/opensmppbox.c: Fixed memory leak concerning MO messages.
     Thanks to Victor Luchitz for reporting.

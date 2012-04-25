@@ -50,7 +50,7 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 sbinPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(sbin_PROGRAMS)
-am_opensmppbox_OBJECTS = opensmppbox.$(OBJEXT)
+am_opensmppbox_OBJECTS = box-dlr.$(OBJEXT) opensmppbox.$(OBJEXT)
 opensmppbox_OBJECTS = $(am_opensmppbox_OBJECTS)
 opensmppbox_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
@@ -125,6 +125,7 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+MYSQL_CONFIG = @MYSQL_CONFIG@
 OBJEXT = @OBJEXT@
 OLDJADE = @OLDJADE@
 OPENSSL = @OPENSSL@
@@ -136,10 +137,13 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PDFJADETEX = @PDFJADETEX@
+PGSQL_CONFIG = @PGSQL_CONFIG@
 RANLIB = @RANLIB@
+SDB_CONFIG = @SDB_CONFIG@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SQLITE3 = @SQLITE3@
 STRIP = @STRIP@
 TEX_DSL = @TEX_DSL@
 VERSION = @VERSION@
@@ -188,7 +192,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-opensmppbox_SOURCES = opensmppbox.c
+opensmppbox_SOURCES = box-dlr.c opensmppbox.c
 EXTRA_DIST = 
 all: all-am
 
@@ -261,6 +265,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/box-dlr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opensmppbox.Po@am__quote@
 
 .c.o:
