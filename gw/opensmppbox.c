@@ -1019,6 +1019,9 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		dlr_state = 5;
 		dlr_status = octstr_imm("UNDELIV");
 		break;
+	default:
+		dlr_status = octstr_imm("UNKNOWN");
+		break;
 	}
 
 	text = octstr_get_cstr(msg->sms.msgdata);
