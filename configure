@@ -22506,7 +22506,8 @@ fi
 
 fi
 
-    cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_MYSQL 1
 _ACEOF
 
@@ -22811,11 +22812,13 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_sdb_sdb_init" >&5
 echo "${ECHO_T}$ac_cv_lib_sdb_sdb_init" >&6
 if test $ac_cv_lib_sdb_sdb_init = yes; then
   LIBS="$LIBS -lsdb"
-       cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_SDB 1
 _ACEOF
 
-       cat >>confdefs.h <<_ACEOF
+
+cat >>confdefs.h <<_ACEOF
 #define LIBSDB_VERSION "$sdb_version"
 _ACEOF
 
@@ -23068,7 +23071,8 @@ echo "$as_me:$LINENO: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
 echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6
 if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
   LIBS="$LIBS -lsqlite3"
-       cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_SQLITE3 1
 _ACEOF
 
@@ -23923,7 +23927,8 @@ _ACEOF
 
 fi
 
-    cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_PGSQL 1
 _ACEOF
 

@@ -598,7 +598,7 @@ else
     AC_CHECK_LIB(mysqlclient_r, mysql_stmt_init, [],
                 AC_CHECK_LIB(mysqlclient, mysql_stmt_init, [], [AC_MSG_ERROR([Unable to find MySQL client libraries version >= 4.1])])
     )
-    AC_DEFINE(HAVE_MYSQL)
+    AC_DEFINE(HAVE_MYSQL, 1, "Do we have MySQL?" )
     AC_MSG_CHECKING([whether to compile with MySQL support])
     AC_MSG_RESULT(yes)
     MYSQL="yes"
@@ -629,8 +629,8 @@ else
     LIBS="$LIBS `$SDB_CONFIG --libs`"
     AC_CHECK_LIB(sdb, sdb_init,
       [LIBS="$LIBS -lsdb"
-       AC_DEFINE(HAVE_SDB)
-       AC_DEFINE_UNQUOTED(LIBSDB_VERSION, "$sdb_version")
+       AC_DEFINE(HAVE_SDB, 1, "Do we have LibSDB?" )
+       AC_DEFINE_UNQUOTED(LIBSDB_VERSION, "$sdb_version", "")
        SDB="yes"],
       [AC_MSG_ERROR([Unable to find libSDB client libraries])]
     )
@@ -654,7 +654,7 @@ else
     LIBS="$LIBS -L/usr/local/lib"
     AC_CHECK_LIB(sqlite3, sqlite3_open,
       [LIBS="$LIBS -lsqlite3"
-       AC_DEFINE(HAVE_SQLITE3)
+       AC_DEFINE(HAVE_SQLITE3, 1, "DO we have SQLite3?")
        SQLITE3="yes"],
       [AC_MSG_ERROR([Unable to find SQLite3 client libraries])]
     )
@@ -788,7 +788,7 @@ else
 
     AC_CHECK_HEADERS(postgresql/libpq-fe.h)
     AC_CHECK_LIB(pq, PQconnectdb, [])
-    AC_DEFINE(HAVE_PGSQL)
+    AC_DEFINE(HAVE_PGSQL, 1, Do we have Postgres? )
     AC_MSG_CHECKING([whether to compile with PostgreSQL support])
     AC_MSG_RESULT(yes)
     PGSQL="yes"

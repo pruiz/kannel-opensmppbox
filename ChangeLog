@@ -1,3 +1,6 @@
+2012-08-06 Rene Kluwen <rene.kluwen at chimit.nl>
+    * Fixed automake bug
+
 2011-04-25 Aarno Syvanen
     * config section use-smppoxid added.
     * added stand alone external dlr storage

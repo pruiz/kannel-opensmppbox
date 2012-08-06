@@ -25,8 +25,17 @@
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
 
+/* Define to 1 if you have the `mysqlclient' library (-lmysqlclient). */
+#undef HAVE_LIBMYSQLCLIENT
+
+/* Define to 1 if you have the `mysqlclient_r' library (-lmysqlclient_r). */
+#undef HAVE_LIBMYSQLCLIENT_R
+
 /* Define to 1 if you have the `pam' library (-lpam). */
 #undef HAVE_LIBPAM
+
+/* Define to 1 if you have the `pq' library (-lpq). */
+#undef HAVE_LIBPQ
 
 /* Define to 1 if you have the `ssl' library (-lssl). */
 #undef HAVE_LIBSSL
@@ -37,6 +46,18 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Defined to 1 */
+#undef HAVE_MSSQL
+
+/* "Do we have MySQL?" */
+#undef HAVE_MYSQL
+
+/* Define to 1 if you have the <mysql/mysql.h> header file. */
+#undef HAVE_MYSQL_MYSQL_H
+
+/* Define to 1 if you have the <mysql/mysql_version.h> header file. */
+#undef HAVE_MYSQL_MYSQL_VERSION_H
 
 /* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
 #undef HAVE_NDIR_H
@@ -59,6 +80,9 @@
 /* Define to 1 if you have the <openssl/x509.h> header file. */
 #undef HAVE_OPENSSL_X509_H
 
+/* Do we have Oracle */
+#undef HAVE_ORACLE
+
 /* "HAVE_PAM" */
 #undef HAVE_PAM
 
@@ -67,6 +91,24 @@
 
 /* "HAVE_PAM_SECURITY" */
 #undef HAVE_PAM_SECURITY
+
+/* Do we have Postgres? */
+#undef HAVE_PGSQL
+
+/* Define to 1 if you have the <postgresql/libpq-fe.h> header file. */
+#undef HAVE_POSTGRESQL_LIBPQ_FE_H
+
+/* "Do we have LibSDB?" */
+#undef HAVE_SDB
+
+/* Define to 1 if you have the <sdb.h> header file. */
+#undef HAVE_SDB_H
+
+/* "DO we have SQLite3?" */
+#undef HAVE_SQLITE3
+
+/* Define to 1 if you have the <sqlite3.h> header file. */
+#undef HAVE_SQLITE3_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -97,36 +139,11 @@
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
 
-/* Define if you have and want to use the FreeTDS ct-lib */
-#undef HAVE_MSSQL
- 
-/* Define if you have and want to use the MySQL client library (-lmysqlclient) */
-#undef HAVE_MYSQL
- 
-/* Define if you have and want to use the sdb client library (-lsdb) */  
-#undef HAVE_SDB
-  
-/* Define if you have and want to use the OCI library */
-#undef HAVE_ORACLE
- 
-/* Define if you have and want to use the SQLite database library (-lsqlite) */
-#undef HAVE_SQLITE
- 
-/* Define if you have and want to use the SQLite3 database library (-lsqlite3) */
-#undef HAVE_SQLITE3
-  
-/* Define version of used libSDB */
-#undef LIBSDB_VERSION
- 
-/* Define if you have and want to use the PostgreSQL dlr routines (-lpq) */
-#undef HAVE_PGSQL
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
+/* "" */
+#undef LIBSDB_VERSION
 
 /* Name of package */
 #undef PACKAGE
