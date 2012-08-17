@@ -1,3 +1,7 @@
+2012-08-17 Rene Kluwen <rene.kluwen at chimit.nl>
+    * Removed line 2511 (smpp_status = SMPP_SHUTDOWN as this would end
+    * opensmppbox whilst in fact it only should end the current connection.
+
 2012-08-06 Rene Kluwen <rene.kluwen at chimit.nl>
     * Fixed automake bug
 

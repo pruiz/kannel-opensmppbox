@@ -2509,7 +2509,6 @@ static void bearerbox_to_smpp(void *arg)
     }
 
     error(0, "opensmppbox: bearerbox_to_smpp: thread terminates");
-    smppbox_status = SMPP_SHUTDOWN;
 }
 
 static void run_smppbox(void *arg)
