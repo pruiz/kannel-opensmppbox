@@ -18,10 +18,6 @@ our-system-id = chim1
 route-to-smsc = my-default-smsc
 # see sample smpplogins.txt
 smpp-logins = "/home/opensmppbox/etc/smpplogins.txt"
-# If you set usesmppbox-id, you must set use-systemid-as-smsboxid, too
-# See documentation for details of this flag.
-use-smppboxid = yes
-use-systemid-as-smsboxid = yes
 
 # the following is just standard dlr configuration
 
@@ -46,17 +42,3 @@ field-url = url
 field-mask = mask
 field-status = status
 field-boxc-id = boxcid
-# this field is needed when use-smppboxid flag is used
-field-msg-id =id
-
-# Rules to route MOs. Routing is based either on smsc id,
-# shortcode or both.
-group = client-route
-client-id = myclient1
-smsc-id = mysmsc1
-
-group = client-route
-client-id = myclient2
-smsc-id = mysmsc2
-
-
