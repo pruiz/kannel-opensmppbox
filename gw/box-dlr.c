@@ -1715,7 +1715,6 @@ static void dlr_sqlite3_add_with_id(box_dlr_entry *entry)
                         box_fields->dlr_db_fields->field_serv, box_fields->dlr_db_fields->field_url,
                         box_fields->dlr_db_fields->field_mask, box_fields->dlr_db_fields->field_boxc,
                         box_fields->dlr_db_fields->field_status, box_fields->field_id);
-1
 #if defined(DLR_TRACE)
     debug("opensmmpbox", 0, "sql: %s", octstr_get_cstr(sql));
 #endif
