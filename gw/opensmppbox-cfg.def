@@ -83,6 +83,7 @@ SINGLE_GROUP(opensmppbox,
 	OCTSTR(enable-pam)
 	OCTSTR(pam-acl)
         OCTSTR(box-msg-id)
+	OCTSTR(swap-dlr-src-dst)
 )
 
 MULTI_GROUP(client-route,

@@ -127,6 +127,7 @@ static int systemidisboxcid;
 static int enablepam;
 static Octstr *pamacl;
 static int usesmppboxid;
+static int swapdlrsrcdst;
 
 static Dict *client_by_smsc;
 static Dict *client_by_receiver;
@@ -853,6 +854,33 @@ static void change_box_id(Msg *msg)
         msg->sms.boxc_id = octstr_duplicate(smppbox_id);
 }
 
+static void swap_dlr_src_and_dst(Boxc *box, List *pdulist)
+{
+	SMPP_PDU *pdu;
+	unsigned long npi, ton;
+	Octstr *addr;
+	int i;
+
+	if (pdulist == NULL)
+		return;
+
+	debug("opensmppbox", 0, "SMPP[%s]: Swapping DLR source and destination addr.", 
+		octstr_get_cstr(box->boxc_id));
+
+	for (i = 0; i < gwlist_len(pdulist); i++) {
+		pdu = gwlist_get(pdulist, i);
+		addr = pdu->u.deliver_sm.source_addr;
+		ton = pdu->u.deliver_sm.source_addr_ton;
+		npi = pdu->u.deliver_sm.source_addr_npi;
+		pdu->u.deliver_sm.source_addr = pdu->u.deliver_sm.destination_addr;
+		pdu->u.deliver_sm.source_addr_ton = pdu->u.deliver_sm.dest_addr_ton;
+		pdu->u.deliver_sm.source_addr_npi = pdu->u.deliver_sm.dest_addr_npi;
+		pdu->u.deliver_sm.destination_addr = addr;
+		pdu->u.deliver_sm.dest_addr_ton = ton;
+		pdu->u.deliver_sm.dest_addr_npi = npi;
+	}
+}
+
 static List *msg_to_pdu(Boxc *box, Msg *msg)
 {
     SMPP_PDU *pdu, *pdu2;
@@ -1095,6 +1123,7 @@ static List *msg_to_pdu(Boxc *box, Msg *msg)
 		pdu->u.deliver_sm.short_message = octstr_format("id:%S sub:001 dlvrd:%S submit date:%s done date:%s stat:%S err:%s text:%12s", msgid, dlvrd, submit_date_c_str, done_date_c_str, dlr_status, err, text);
 		gwlist_append(pdulist, pdu);
 	}
+	swap_dlr_src_and_dst(box, pdulist);
 	octstr_destroy(msgid);
 	msg_destroy(dlr);
 	gwlist_destroy(parts, octstr_destroy_item);
@@ -2807,6 +2836,7 @@ static void init_smppbox(Cfg *cfg)
 	systemidisboxcid = 0; /* default backward compatible */
 	enablepam = 0; /* also default false */
         usesmppboxid = 0; /* Ditto */
+	swapdlrsrcdst = 0;
 
 	/* initialize low level PDUs */
 	if (smpp_pdu_init(cfg) == -1)
@@ -2877,6 +2907,7 @@ static void init_smppbox(Cfg *cfg)
 	cfg_get_bool(&systemidisboxcid, grp, octstr_imm("use-systemid-as-smsboxid"));
 	cfg_get_bool(&enablepam, grp, octstr_imm("enable-pam"));
 	cfg_get_bool(&usesmppboxid, grp, octstr_imm("use-smppboxid"));
+	cfg_get_bool(&swapdlrsrcdst, grp, octstr_imm("swap-dlr-src-dst"));
         pamacl = cfg_get(grp, octstr_imm("pam-acl"));
 	if (NULL == pamacl) {
 		pamacl = octstr_create("kannel");
