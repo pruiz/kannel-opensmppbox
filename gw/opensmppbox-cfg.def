@@ -81,3 +81,9 @@ SINGLE_GROUP(opensmppbox,
 	OCTSTR(enable-pam)
 	OCTSTR(pam-acl)
 )
+
+MULTI_GROUP(smsc-route,
+	OCTSTR(smsc-id)
+	OCTSTR(smsbox-id)
+	OCTSTR(shortcode)
+)

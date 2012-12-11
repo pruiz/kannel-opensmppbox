@@ -116,6 +116,10 @@ static int smpp_autodetect_addr = 0;
 static long smpp_dest_addr_ton = -1;
 static long smpp_dest_addr_npi = -1;
 
+static Dict *smsc_by_smsbox_id = NULL;
+static Dict *smsc_by_sender = NULL;
+static Dict *smsc_by_sender_smsbox_id = NULL;
+
 static Octstr *smppbox_id;
 static Octstr *our_system_id;
 static Octstr *route_to_smsc;
@@ -177,6 +181,8 @@ void smpp_pdu_destroy_item(void *pdu)
 {
 	smpp_pdu_destroy(pdu);
 }
+
+static Octstr *boxc_route_msg_to_smsc(Boxc *box, Msg *msg);
 
 /*
  * Use PAM (Pluggable Authentication Module) to check sendsms authentication.
@@ -1479,7 +1485,8 @@ void check_multipart(Boxc *box, Msg *msg, int *msg_to_send, Msg **msg2, List **p
 				
 			}
 			else {
-				(*msg2)->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
+				Octstr *smsc_id = boxc_route_msg_to_smsc(box, *msg2);
+				(*msg2)->sms.smsc_id = smsc_id ? octstr_duplicate(smsc_id) : NULL;
 				(*msg2)->sms.boxc_id = octstr_duplicate(box->boxc_id);
 				debug("opensmppbox", 0, "multi-part message, length: %ld.", octstr_len((*msg2)->sms.msgdata));
 				(*msg_to_send) = 1;
@@ -1584,8 +1591,9 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.generic_nack.command_status = SMPP_ESME_RUNKNOWNERR;
 		}
 		else {
+			Octstr *smsc_id = boxc_route_msg_to_smsc(box, msg);
 			check_multipart(box, msg, &msg_to_send, &msg2, &parts_list);
-			msg->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
+			msg->sms.smsc_id = smsc_id ? octstr_duplicate(smsc_id) : NULL;
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(data_sm_resp, pdu->u.data_sm.sequence_number);
@@ -1625,8 +1633,9 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			resp->u.generic_nack.command_status = SMPP_ESME_RUNKNOWNERR;
 		}
 		else {
+			Octstr *smsc_id = boxc_route_msg_to_smsc(box, msg);
 			check_multipart(box, msg, &msg_to_send, &msg2, &parts_list);
-			msg->sms.smsc_id = box->route_to_smsc ? octstr_duplicate(box->route_to_smsc) : NULL;
+			msg->sms.smsc_id = smsc_id ? octstr_duplicate(smsc_id) : NULL;
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(submit_sm_resp, pdu->u.submit_sm.sequence_number);
@@ -1765,6 +1774,33 @@ static void boxc_destroy(Boxc *boxc)
     dict_destroy(boxc->msg_acks);
     dict_destroy(boxc->deliver_acks);
     gw_free(boxc);
+}
+
+static Octstr *boxc_route_msg_to_smsc(Boxc *box, Msg *msg)
+{
+	Octstr *os, *smsc_id;
+
+	if (msg->sms.smsc_id != NULL)
+		return msg->sms.smsc_id;
+
+	os = octstr_format("%s:%s", octstr_get_cstr(msg->sms.sender),
+		octstr_get_cstr(box->boxc_id));
+
+	smsc_id = dict_get(smsc_by_sender_smsbox_id, os);
+	if (!smsc_id)
+		smsc_id = dict_get(smsc_by_sender, msg->sms.sender);
+	if (!smsc_id)
+		smsc_id = dict_get(smsc_by_smsbox_id, box->boxc_id);
+	if (!smsc_id)
+		smsc_id = box->route_to_smsc;
+
+	if (smsc_id)
+		debug("opensmppbox", 0, "routed msg '%s' to smsc '%s'",
+		octstr_get_cstr(os), octstr_get_cstr(smsc_id));
+
+	octstr_destroy(os);
+
+	return smsc_id;
 }
 
 /* ------------------------------------------------------------------
@@ -2210,6 +2246,123 @@ static void gw_smpp_leave()
 {
 }
 
+static void init_smsc_routes(Cfg *cfg)
+{
+    CfgGroup *grp;
+    List *list, *items;
+    Octstr *smsc_id, *boxc_ids, *shortcodes;
+    int i, j;
+
+    smsc_by_smsbox_id = dict_create(30, (void(*)(void *)) octstr_destroy);
+    smsc_by_sender = dict_create(50, (void(*)(void *)) octstr_destroy);
+    smsc_by_sender_smsbox_id = dict_create(50, (void(*)(void *)) octstr_destroy);
+
+    smsc_id = boxc_ids = shortcodes = NULL;
+    list = items = NULL;
+
+    list = cfg_get_multi_group(cfg, octstr_imm("smsc-route"));
+
+    /* loop multi-group "client-route" */
+    while (list && (grp = gwlist_extract_first(list)) != NULL) {
+        if ((smsc_id = cfg_get(grp, octstr_imm("smsc-id"))) == NULL) {
+            grp_dump(grp);
+            panic(0,"'smsc-id-route' group without valid 'smsc-id' directive!");
+        }
+
+        /*
+         * If smsbox-id is given, then any message coming from the specified
+         * smsbox-id in the list will be routed to this smsc.
+         * If shortcode is given, then any message with sender number
+         * matching those will be routed to this smsc.
+         * If both are given, then only sender within shortcode originating
+         * from sysmtem-id list will be routed to this smsc. So if both are 
+         * present then this is a logical AND operation.
+         */
+        boxc_ids = cfg_get(grp, octstr_imm("smsbox-id"));
+        shortcodes = cfg_get(grp, octstr_imm("shortcode"));
+
+        /* consider now the 3 possibilities: */
+        if (boxc_ids && !shortcodes) {
+            /* smsbox-id only, so all MT traffic */
+            items = octstr_split(boxc_ids, octstr_imm(";"));
+            for (i = 0; i < gwlist_len(items); i++) {
+                Octstr *item = gwlist_get(items, i);
+                octstr_strip_blanks(item);
+
+                debug("opensmppbox",0,"Adding smsc routing to id <%s> for box id <%s>",
+                      octstr_get_cstr(smsc_id), octstr_get_cstr(item));
+
+                if (!dict_put_once(smsc_by_smsbox_id, item, octstr_duplicate(smsc_id)))
+                    panic(0, "Routing for box-id <%s> already exists!",
+                          octstr_get_cstr(item));
+            }
+            gwlist_destroy(items, octstr_destroy_item);
+            octstr_destroy(boxc_ids);   
+        }
+        else if (!boxc_ids && shortcodes) {
+            /* shortcode only, so these MTs from all smscs */
+            items = octstr_split(shortcodes, octstr_imm(";"));
+            for (i = 0; i < gwlist_len(items); i++) {
+                Octstr *item = gwlist_get(items, i);
+                octstr_strip_blanks(item);
+
+                debug("opensmppbox",0,"Adding smsc routing to id <%s> for sender no <%s>",
+                      octstr_get_cstr(smsc_id), octstr_get_cstr(item));
+
+                if (!dict_put_once(smsc_by_sender, item, octstr_duplicate(smsc_id)))
+                    panic(0, "Routing for receiver no <%s> already exists!",
+                          octstr_get_cstr(item));
+            }
+            gwlist_destroy(items, octstr_destroy_item);
+            octstr_destroy(shortcodes);
+        }
+        else if (boxc_ids && shortcodes) {
+            /* both, so only specified MTs from specified smsbox ids */
+            items = octstr_split(shortcodes, octstr_imm(";"));
+            for (i = 0; i < gwlist_len(items); i++) {
+                List *subitems;
+                Octstr *item = gwlist_get(items, i);
+                octstr_strip_blanks(item);
+                subitems = octstr_split(boxc_ids, octstr_imm(";"));
+                for (j = 0; j < gwlist_len(subitems); j++) {
+                    Octstr *subitem = gwlist_get(subitems, j);
+                    octstr_strip_blanks(subitem);
+
+                    debug("opensmppbox",0,"Adding smsc routing to id <%s> "
+                          "for sender no <%s> and smsbox id <%s>",
+                          octstr_get_cstr(smsc_id), octstr_get_cstr(item),
+                          octstr_get_cstr(subitem));
+
+                    /* construct the dict key '<shortcode>:<smsbox-id>' */
+                    octstr_insert(subitem, item, 0);
+                    octstr_insert_char(subitem, octstr_len(item), ':');
+                    if (!dict_put_once(smsc_by_sender_smsbox_id, subitem, octstr_duplicate(smsc_id)))
+                        panic(0, "Routing for sender:smsbox-id <%s> already exists!",
+                              octstr_get_cstr(subitem));
+                }
+                gwlist_destroy(subitems, octstr_destroy_item);
+            }
+            gwlist_destroy(items, octstr_destroy_item);
+            octstr_destroy(shortcodes);
+        }
+        octstr_destroy(smsc_id);
+    }
+
+    gwlist_destroy(list, NULL);
+}
+
+static void destroy_smsc_routes(void)
+{
+    dict_destroy(smsc_by_smsbox_id);
+    smsc_by_smsbox_id = NULL;
+
+    dict_destroy(smsc_by_sender);
+    smsc_by_sender = NULL;
+
+    dict_destroy(smsc_by_sender_smsbox_id);
+    smsc_by_sender_smsbox_id = NULL;
+}
+
 static void init_smppbox(Cfg *cfg)
 {
 	CfgGroup *grp;
@@ -2313,6 +2466,8 @@ static void init_smppbox(Cfg *cfg)
 	if (enablepam) {
 		info(0, "Using PAM authentication.");
 	}
+
+	init_smsc_routes(cfg);
 
 	catenated_sms_counter = counter_create();
         boxid = counter_create();
@@ -2420,6 +2575,7 @@ int main(int argc, char **argv)
 	/* shutdown dlr storage */
 	heartbeat_stop(ALL_HEARTBEATS);
 	dlr_shutdown();
+	destroy_smsc_routes();
 	counter_destroy(catenated_sms_counter);
 	counter_destroy(boxid);
 
