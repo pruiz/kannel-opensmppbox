@@ -522,6 +522,7 @@ Msg *catenate_msg(List *list, int total)
 	int current = 1, partno = 1, thismsg, max = 0;
 	Msg *current_msg;
 	Msg *ret = msg_duplicate(gwlist_get(list, 0));
+	uuid_generate(ret->sms.id);
 
 	octstr_destroy(ret->sms.udhdata);
 	ret->sms.udhdata = NULL;
