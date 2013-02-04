@@ -1269,13 +1269,13 @@ static Msg *pdu_to_msg(Boxc *box, SMPP_PDU *pdu, long *reason)
     
     /* set validity period if needed */
     if (pdu->u.submit_sm.validity_period) {
-        msg->sms.validity = timestamp_to_minutes(pdu->u.submit_sm.validity_period);
+        msg->sms.validity = time(NULL) + timestamp_to_minutes(pdu->u.submit_sm.validity_period) * 60;
     }
 
     
     /* set schedule delivery time if needed */
     if (pdu->u.submit_sm.schedule_delivery_time) {
-        msg->sms.deferred = timestamp_to_minutes(pdu->u.submit_sm.schedule_delivery_time);
+        msg->sms.deferred = time(NULL) + timestamp_to_minutes(pdu->u.submit_sm.schedule_delivery_time) * 60;
     }
 
     return msg;
