@@ -2461,7 +2461,7 @@ static void init_smppbox(Cfg *cfg)
 	}
 #ifndef HAVE_PAM
 	if (enablepam) {
-		panic(0, "enable-pam is set but we are compiked without pam support.");
+		panic(0, "enable-pam is set but we are compiled without pam support.");
 	}
 #endif
 	if (enablepam) {
