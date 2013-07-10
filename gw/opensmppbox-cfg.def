@@ -86,4 +86,5 @@ MULTI_GROUP(smsc-route,
 	OCTSTR(smsc-id)
 	OCTSTR(smsbox-id)
 	OCTSTR(shortcode)
+	OCTSTR(receiver-shortcode)
 )

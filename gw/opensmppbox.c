@@ -116,6 +116,7 @@ static int smpp_autodetect_addr = 0;
 static long smpp_dest_addr_ton = -1;
 static long smpp_dest_addr_npi = -1;
 
+static Dict *smsc_by_receiver = NULL;
 static Dict *smsc_by_smsbox_id = NULL;
 static Dict *smsc_by_sender = NULL;
 static Dict *smsc_by_sender_smsbox_id = NULL;
@@ -1784,10 +1785,17 @@ static Octstr *boxc_route_msg_to_smsc(Boxc *box, Msg *msg)
 	if (msg->sms.smsc_id != NULL)
 		return msg->sms.smsc_id;
 
-	os = octstr_format("%s:%s", octstr_get_cstr(msg->sms.sender),
-		octstr_get_cstr(box->boxc_id));
+        char *receiver =  octstr_get_cstr(msg->sms.receiver);
+        if ( (receiver) && (strlen(receiver) > 0) ) {
+                smsc_id = dict_get(smsc_by_receiver, msg->sms.receiver);
+	        os = octstr_format("receiver:%s", receiver);
+        };
 
-	smsc_id = dict_get(smsc_by_sender_smsbox_id, os);
+	if (!smsc_id) {
+	        os = octstr_format("%s:%s", octstr_get_cstr(msg->sms.sender),
+		    octstr_get_cstr(box->boxc_id));
+	        smsc_id = dict_get(smsc_by_sender_smsbox_id, os);
+        };
 	if (!smsc_id)
 		smsc_id = dict_get(smsc_by_sender, msg->sms.sender);
 	if (!smsc_id)
@@ -2251,14 +2259,15 @@ static void init_smsc_routes(Cfg *cfg)
 {
     CfgGroup *grp;
     List *list, *items;
-    Octstr *smsc_id, *boxc_ids, *shortcodes;
+    Octstr *smsc_id, *boxc_ids, *shortcodes, *receiver_shortcodes;
     int i, j;
 
+    smsc_by_receiver = dict_create(1000, (void(*)(void *)) octstr_destroy);
     smsc_by_smsbox_id = dict_create(30, (void(*)(void *)) octstr_destroy);
     smsc_by_sender = dict_create(50, (void(*)(void *)) octstr_destroy);
     smsc_by_sender_smsbox_id = dict_create(50, (void(*)(void *)) octstr_destroy);
 
-    smsc_id = boxc_ids = shortcodes = NULL;
+    smsc_id = boxc_ids = shortcodes = receiver_shortcodes = NULL;
     list = items = NULL;
 
     list = cfg_get_multi_group(cfg, octstr_imm("smsc-route"));
@@ -2281,6 +2290,25 @@ static void init_smsc_routes(Cfg *cfg)
          */
         boxc_ids = cfg_get(grp, octstr_imm("smsbox-id"));
         shortcodes = cfg_get(grp, octstr_imm("shortcode"));
+        receiver_shortcodes = cfg_get(grp, octstr_imm("receiver-shortcode"));
+
+        /* Consider the receiver options: receiver-shortcode. */
+        {
+            /* receiver-shortcode applies to all MTs from all smscs */
+            items = octstr_split(receiver_shortcodes, octstr_imm(";"));
+            for (i = 0; i < gwlist_len(items); i++) {
+                Octstr *item = gwlist_get(items, i);
+                octstr_strip_blanks(item);
+
+                debug("opensmppbox",0,"Adding smsc routing to id <%s> for receiver no <%s>",
+                      octstr_get_cstr(smsc_id), octstr_get_cstr(item));
+
+                if (!dict_put_once(smsc_by_receiver, item, octstr_duplicate(smsc_id)))
+                    panic(0, "Routing for receiver no <%s> already exists!",
+                          octstr_get_cstr(item));
+            }
+            gwlist_destroy(items, octstr_destroy_item);
+        };
 
         /* consider now the 3 possibilities: */
         if (boxc_ids && !shortcodes) {
@@ -2311,7 +2339,7 @@ static void init_smsc_routes(Cfg *cfg)
                       octstr_get_cstr(smsc_id), octstr_get_cstr(item));
 
                 if (!dict_put_once(smsc_by_sender, item, octstr_duplicate(smsc_id)))
-                    panic(0, "Routing for receiver no <%s> already exists!",
+                    panic(0, "Routing for sender no <%s> already exists!",
                           octstr_get_cstr(item));
             }
             gwlist_destroy(items, octstr_destroy_item);
@@ -2354,6 +2382,9 @@ static void init_smsc_routes(Cfg *cfg)
 
 static void destroy_smsc_routes(void)
 {
+    dict_destroy(smsc_by_receiver);
+    smsc_by_receiver = NULL;
+
     dict_destroy(smsc_by_smsbox_id);
     smsc_by_smsbox_id = NULL;
 

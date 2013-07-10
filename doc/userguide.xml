@@ -954,6 +954,18 @@ shortcode = "1111;2222;3333"
 				originating from the smsbox A, B or C will be assigned a smsc id "mysmsc".
 			</para>
 
+			<para>Yet another example:
+
+				<programlisting>
+group = smsc-route
+smsc-id = mysmsc
+receiver-shortcode = "+18887778888;+18887779999;+18886665555"
+				</programlisting>
+
+				Which means all outbound messages with receiver number +18887778888, +18887779999, +18886665555 
+				will be assigned a smsc id "mysmsc".
+			</para>
+
 			<para>
 				If none of the rules have been defined or none match the criteria, the 
 				default smsc route defined in route-to-smsc configuration variable 
@@ -1022,6 +1034,21 @@ shortcode = "1111;2222;3333"
                 If used in combination with config directive smsbox-id, 
                 then only messages originating from the specified
                 smsboxes are matched against the shortcode list.
+              </entry>
+            </row>
+            <row>
+              <entry>
+                <literal>receiver-shortcode (o)</literal>
+              </entry>
+              <entry>
+                <literal>number-list</literal>
+              </entry>
+              <entry valign="bottom">
+                If set, specifies which receiver numbers for outbound 
+                messages should be routed to this smsc. List contains 
+                numbers separated by semicolon (";").
+                This option takes higher precedence than smsbox-id and
+                shortcode; it supercedes these options.
               </entry>
             </row>
           </tbody>
