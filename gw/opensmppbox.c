@@ -632,7 +632,7 @@ static int send_pdu(Connection *conn, Octstr *id, SMPP_PDU *pdu)
 }
 
 /* generate 8 character ID, taken from msgid */
-static Octstr *generate_smppid(Msg *msg)
+static Octstr *generate_smppid(Msg *msg, int version)
 {
 	char uuidbuf[100];
 	Octstr *result;
@@ -640,7 +640,7 @@ static Octstr *generate_smppid(Msg *msg)
 	// gw_assert(msg->type == sms); // we segfault on this
 
 	uuid_unparse(msg->sms.id, uuidbuf);
-	result = octstr_create_from_data(uuidbuf, 8);
+	result = octstr_create_from_data(uuidbuf, version > 0x33 ? UUID_STR_LEN : 8);
 	return result;
 }
 
@@ -1599,14 +1599,14 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(data_sm_resp, pdu->u.data_sm.sequence_number);
-			msgid = generate_smppid(msg);
+			msgid = generate_smppid(msg, box->version);
 			msg->sms.dlr_url = octstr_duplicate(msgid);
 			resp->u.data_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
 					hold_service = msg2->sms.service;
 					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
-					msgid = generate_smppid(msg2);
+					msgid = generate_smppid(msg2, box->version);
 					if (parts_list) {
 						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
 					}
@@ -1641,14 +1641,14 @@ static void handle_pdu(Connection *conn, Boxc *box, SMPP_PDU *pdu) {
 			msg->sms.boxc_id = octstr_duplicate(box->boxc_id);
 			msg_dump(msg, 0);
 			resp = smpp_pdu_create(submit_sm_resp, pdu->u.submit_sm.sequence_number);
-			msgid = generate_smppid(msg);
+			msgid = generate_smppid(msg, box->version);
 			msg->sms.dlr_url = octstr_duplicate(msgid);
 			resp->u.submit_sm_resp.message_id = msgid;
 			if (msg_to_send) {
 				if (DLR_IS_ENABLED(msg2->sms.dlr_mask)) {
 					hold_service = msg2->sms.service;
 					msg2->sms.service = octstr_format("%ld", msg2->sms.time);
-					msgid = generate_smppid(msg2);
+					msgid = generate_smppid(msg2, box->version);
 					if (parts_list) {
 						msg2->sms.dlr_url = concat_msgids(msgid, parts_list);
 					}

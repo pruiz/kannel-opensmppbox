@@ -1,5 +1,9 @@
+2013-08-08 Rene Kluwen <rene.kluwen at chimit.nl>
+    Patch provided by Alexander Kovalenko <alexander.kovalenko at ardas.dp.ua>. The generated smpp message id
+    is now more than 8 characters in case of smpp version > 3.3.
+
 2013-07-10 Rene Kluwen <rene.kluwen at chimit.nl>
-    Path provided by Kelvin Porter Kelvin.Porterat h3net.com. Allows routing to smsc based upon receiver number.
+    Patch provided by Kelvin Porter Kelvin.Porterat h3net.com. Allows routing to smsc based upon receiver number.
 
 2012-12-18 Rene Kluwen <rene.kluwen at chimit.nl>
     Another patch by Victor Luchitz. Multi-part messages now have an smpp message-id of their own.
