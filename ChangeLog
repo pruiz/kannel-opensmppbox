@@ -1,3 +1,7 @@
+2013-09-01 Rene Kluwen <rene.kluwen at chimit.nl>
+    Fixed a small bug in the routing-upon-receiver number where opensmppbox would crash at boot-time
+    if the particular config section is not defined.
+
 2013-08-08 Rene Kluwen <rene.kluwen at chimit.nl>
     Patch provided by Alexander Kovalenko <alexander.kovalenko at ardas.dp.ua>. The generated smpp message id
     is now more than 8 characters in case of smpp version > 3.3.

@@ -2293,7 +2293,7 @@ static void init_smsc_routes(Cfg *cfg)
         receiver_shortcodes = cfg_get(grp, octstr_imm("receiver-shortcode"));
 
         /* Consider the receiver options: receiver-shortcode. */
-        {
+        if (receiver_shortcodes) {
             /* receiver-shortcode applies to all MTs from all smscs */
             items = octstr_split(receiver_shortcodes, octstr_imm(";"));
             for (i = 0; i < gwlist_len(items); i++) {
