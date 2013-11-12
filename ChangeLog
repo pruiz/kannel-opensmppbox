@@ -1,3 +1,7 @@
+2013-11-12 Rene Kluwen <rene.kluwen at chimit.nl>
+    Patch by Juno Lopez that allows for segmented reading of pdus
+    when they are split over different tcp packets under high load.
+
 2013-09-01 Rene Kluwen <rene.kluwen at chimit.nl>
     Fixed a small bug in the routing-upon-receiver number where opensmppbox would crash at boot-time
     if the particular config section is not defined.

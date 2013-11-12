@@ -1862,8 +1862,8 @@ static void smpp_to_bearerbox(void *arg)
     long len;
 
     box->last_pdu_received = time(NULL);
+    len = 0;
     while (smppbox_status == SMPP_RUNNING && box->alive) {
-		len = 0;
 		switch (read_pdu(box, conn, &len, &pdu)) {
 		case -1:
 			error(0, "Invalid SMPP PDU received.");
