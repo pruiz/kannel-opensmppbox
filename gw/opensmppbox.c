@@ -2581,7 +2581,7 @@ int main(int argc, char **argv)
 	setup_signal_handlers();
 
 	if (argv[cf_index] == NULL)
-		filename = octstr_create("kannel.conf");
+		filename = octstr_create("opensmppbox.conf");
 	else
 		filename = octstr_create(argv[cf_index]);
 
