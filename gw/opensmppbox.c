@@ -345,7 +345,7 @@ valid_login:
     do {                                        \
         debug("opensmppbox", 0, "SMPP[%s]: %s", \
             octstr_get_cstr(id), msg);          \
-        smpp_pdu_dump(pdu);                     \
+        smpp_pdu_dump(id, pdu);                 \
     } while(0)
 #endif
 
